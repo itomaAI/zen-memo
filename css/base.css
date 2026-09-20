@@ -51,7 +51,16 @@ html, body {
 #editor-viewport {
   flex: 1;
   width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* ProseMirror / Tiptap Surface */
+.ProseMirror {
+  width: 100%;
   max-width: 760px;
+  min-height: 100%;
   margin: 0 auto;
   padding: 56px 24px calc(140px + env(safe-area-inset-bottom)) 24px;
   outline: none;
@@ -60,24 +69,19 @@ html, body {
   letter-spacing: 0.01em;
   word-break: break-word;
   color: var(--text-color);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
 }
 
 /* Typography & Headings */
-#editor-viewport h1.doc-title {
+.ProseMirror h1 {
   font-size: 32px;
   font-weight: 700;
   line-height: 1.28;
   margin-bottom: 24px;
   letter-spacing: -0.02em;
   color: var(--accent-color);
-  border: none;
-  outline: none;
 }
 
-#editor-viewport h2 {
+.ProseMirror h2 {
   font-size: 22px;
   font-weight: 600;
   line-height: 1.35;
@@ -85,14 +89,14 @@ html, body {
   letter-spacing: -0.01em;
 }
 
-#editor-viewport h3 {
+.ProseMirror h3 {
   font-size: 19px;
   font-weight: 600;
   line-height: 1.4;
   margin: 1.5em 0 0.5em 0;
 }
 
-#editor-viewport h4 {
+.ProseMirror h4 {
   font-size: 17px;
   font-weight: 600;
   line-height: 1.45;
@@ -100,62 +104,69 @@ html, body {
   color: var(--text-muted);
 }
 
-#editor-viewport del, #editor-viewport s {
+.ProseMirror p {
+  margin-bottom: 1.25em;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror del, .ProseMirror s {
   text-decoration: line-through;
   opacity: 0.75;
 }
 
-#editor-viewport p {
-  margin-bottom: 1.25em;
-}
-
-#editor-viewport p:last-child {
-  margin-bottom: 0;
-}
-
-#editor-viewport ul, #editor-viewport ol {
+.ProseMirror ul, .ProseMirror ol {
   margin: 0.8em 0 1.25em 1.6em;
 }
 
-#editor-viewport li {
+.ProseMirror li {
   margin-bottom: 0.35em;
 }
 
-/* Task List / Checklist */
-#editor-viewport ul.task-list {
+/* Tiptap TaskList / Checklist (Fixed & Perfectly Aligned) */
+.ProseMirror ul[data-type="taskList"] {
   list-style: none;
-  margin-left: 0.2em;
-  padding-left: 0;
+  padding: 0;
+  margin: 0.8em 0 1.25em 0;
 }
 
-#editor-viewport li.task-list-item {
+.ProseMirror ul[data-type="taskList"] > li {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 0.4em;
+  gap: 10px;
+  margin-bottom: 0.45em;
 }
 
-#editor-viewport li.task-list-item input[type="checkbox"] {
+.ProseMirror ul[data-type="taskList"] > li > label {
+  user-select: none;
+  margin-top: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] > li > label input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
   border: 1.5px solid var(--text-muted);
   border-radius: 5px;
-  margin-top: 5px;
   cursor: pointer;
-  flex-shrink: 0;
   display: grid;
   place-content: center;
   transition: all 0.15s ease;
+  background: transparent;
+  margin: 0;
 }
 
-#editor-viewport li.task-list-item input[type="checkbox"]:checked {
+.ProseMirror ul[data-type="taskList"] > li > label input[type="checkbox"]:checked {
   background-color: var(--text-color);
   border-color: var(--text-color);
 }
 
-#editor-viewport li.task-list-item input[type="checkbox"]:checked::before {
+.ProseMirror ul[data-type="taskList"] > li > label input[type="checkbox"]:checked::before {
   content: "";
   width: 8px;
   height: 5px;
@@ -164,12 +175,20 @@ html, body {
   transform: rotate(-45deg) translate(1px, -1px);
 }
 
-#editor-viewport li.task-list-item.checked {
+.ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
   color: var(--text-muted);
   text-decoration: line-through;
 }
 
-#editor-viewport blockquote {
+.ProseMirror ul[data-type="taskList"] > li > div {
+  flex: 1 1 auto;
+}
+
+.ProseMirror ul[data-type="taskList"] > li > div > p {
+  margin: 0;
+}
+
+.ProseMirror blockquote {
   border-left: 2.5px solid var(--quote-border);
   padding: 4px 0 4px 16px;
   margin: 1.4em 0;
@@ -177,7 +196,7 @@ html, body {
   font-style: italic;
 }
 
-#editor-viewport code {
+.ProseMirror code {
   font-family: var(--font-mono);
   font-size: 0.88em;
   background: var(--code-bg);
@@ -185,7 +204,7 @@ html, body {
   border-radius: 4px;
 }
 
-#editor-viewport pre {
+.ProseMirror pre {
   background: var(--code-bg);
   padding: 16px;
   border-radius: 10px;
@@ -193,21 +212,20 @@ html, body {
   overflow-x: auto;
 }
 
-#editor-viewport pre code {
+.ProseMirror pre code {
   background: transparent;
   padding: 0;
   font-size: 13.5px;
   line-height: 1.6;
 }
 
-#editor-viewport hr {
+.ProseMirror hr {
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 2.5em 0;
 }
 
-/* Image Presentation */
-#editor-viewport img {
+.ProseMirror img {
   max-width: 100%;
   height: auto;
   border-radius: 12px;
