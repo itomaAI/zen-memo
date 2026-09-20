@@ -1,5 +1,8 @@
 /* ========================================================
    Zen Memo - Built-in Color Themes & Dynamic Token Rules
+   ========================================================
+   テーマで変えるものは必ずここのトークンにする。
+   base.css / ui-variants.css に色の直書きを残さない（ダークで読めなくなるため）。
    ======================================================== */
 
 /* Default: Pure Warm Paper */
@@ -11,6 +14,14 @@
   --border-color: rgba(0, 0, 0, 0.08);
   --code-bg: rgba(0, 0, 0, 0.04);
   --quote-border: #d3cfc7;
+  --quote-text: #5b564e;
+
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-solid: #ffffff;
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --active-bg: rgba(0, 0, 0, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.16);
+  --danger-color: #b3261e;
 }
 
 /* Dark: Midnight Slate */
@@ -21,7 +32,15 @@
   --accent-color: #fafafa;
   --border-color: rgba(255, 255, 255, 0.1);
   --code-bg: rgba(255, 255, 255, 0.07);
-  --quote-border: #3f3f46;
+  --quote-border: #52525b;
+  --quote-text: #c4c4cc;
+
+  --surface: rgba(28, 28, 32, 0.94);
+  --surface-solid: #212126;
+  --hover-bg: rgba(255, 255, 255, 0.07);
+  --active-bg: rgba(255, 255, 255, 0.13);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --danger-color: #f2837b;
 }
 
 /* Sepia: Classic Vintage */
@@ -30,9 +49,17 @@
   --text-color: #433422;
   --text-muted: #8f7d66;
   --accent-color: #2d2216;
-  --border-color: rgba(67, 52, 34, 0.1);
+  --border-color: rgba(67, 52, 34, 0.12);
   --code-bg: rgba(67, 52, 34, 0.06);
   --quote-border: #baa78e;
+  --quote-text: #6b573c;
+
+  --surface: rgba(250, 244, 230, 0.95);
+  --surface-solid: #faf4e6;
+  --hover-bg: rgba(67, 52, 34, 0.06);
+  --active-bg: rgba(67, 52, 34, 0.12);
+  --shadow-color: rgba(67, 52, 34, 0.22);
+  --danger-color: #9c3b2e;
 }
 
 /* Minimalist Mono: Crisp Clean */
@@ -44,4 +71,12 @@
   --border-color: #e5e5e5;
   --code-bg: #f5f5f5;
   --quote-border: #000000;
+  --quote-text: #3d3d3d;
+
+  --surface: rgba(255, 255, 255, 0.96);
+  --surface-solid: #ffffff;
+  --hover-bg: rgba(0, 0, 0, 0.05);
+  --active-bg: rgba(0, 0, 0, 0.1);
+  --shadow-color: rgba(0, 0, 0, 0.18);
+  --danger-color: #c02717;
 }

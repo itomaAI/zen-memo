@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="paper">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Zen Memo</title>
@@ -36,9 +36,14 @@
 
       <div class="drawer-footer">
         <button class="btn-new-memo" onclick="createNewNote()">+ 新しいメモ</button>
-        <button class="bar-tool-btn" onclick="openSettings()" title="設定">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
+        <div class="drawer-footer-tools">
+          <button class="bar-tool-btn" onclick="triggerSync()" title="Gist同期">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+          </button>
+          <button class="bar-tool-btn" onclick="openSettings()" title="設定">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -48,8 +53,9 @@
         <h2 class="modal-title">環境・同期設定</h2>
 
         <div class="form-group">
-          <label class="form-label">UIスタイル</label>
+          <label class="form-label" for="select-ui-variant">UIスタイル</label>
           <select class="form-select" id="select-ui-variant">
+            <option value="auto">自動: 画面幅で切替（広い→案A／狭い→案B）</option>
             <option value="capsule">案A: カプセル・ピル（中央下部フローティング）</option>
             <option value="sheet">案B: コーナードック（右下FAB＋ボトムシート）</option>
             <option value="bar">案C: 全幅ミニマルバー（キーボード連動型）</option>
@@ -57,7 +63,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">テーマカラー</label>
+          <label class="form-label" for="select-theme">テーマカラー</label>
           <select class="form-select" id="select-theme">
             <option value="paper">Warm Paper（生成り）</option>
             <option value="mono">Clean Mono（白黒）</option>
@@ -67,19 +73,20 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">GitHub Personal Access Token (PAT)</label>
+          <label class="form-label" for="input-pat">GitHub Personal Access Token (PAT)</label>
           <input type="password" class="form-input" id="input-pat" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-          <span style="font-size: 11px; color: var(--text-muted);">※ Gist 権限を持つトークン。ブラウザの IndexedDB にのみ保存されます。</span>
+          <span class="form-hint">※ gist 権限を持つトークン。このブラウザの IndexedDB にのみ平文で保存されます。共用端末では入れないでください。</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">対象 Gist ID（任意）</label>
+          <label class="form-label" for="input-gist-id">対象 Gist ID（任意）</label>
           <input type="text" class="form-input" id="input-gist-id" placeholder="初回空欄で新規作成">
-          <span style="font-size: 11px; color: var(--text-muted);">※ 既存の Gist Notebook と同期したい場合はその ID を入力。</span>
+          <span class="form-hint">※ 既存の Gist Notebook と同期したい場合はその ID を入力。</span>
+          <span class="form-hint" id="sync-info"></span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">カスタム CSS</label>
+          <label class="form-label" for="textarea-custom-css">カスタム CSS</label>
           <textarea class="form-textarea" id="textarea-custom-css" placeholder="body { font-family: ... }"></textarea>
         </div>
 
@@ -107,10 +114,17 @@
           <button class="capsule-btn" title="見出し2 (H2)" onclick="cmdH2()">H2</button>
           <button class="capsule-btn" title="箇条書きリスト" onclick="cmdListUl()">•≡</button>
           <button class="capsule-btn" title="チェックリスト" onclick="cmdTask()">☑</button>
+          <button class="capsule-btn" title="引用" onclick="cmdQuote()">❞</button>
           <button class="capsule-btn" title="数式 (LaTeX)" onclick="cmdMath()">∑</button>
-          <button class="capsule-btn" title="画像挿入" onclick="cmdImage()">🖼</button>
-          <button class="capsule-btn" title="Gist同期" onclick="triggerSync()">☁️</button>
-          <button class="capsule-btn" title="このメモを削除" onclick="deleteCurrentNote()">🗑</button>
+          <button class="capsule-btn" title="画像挿入" onclick="cmdImage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          </button>
+          <button class="capsule-btn" title="Gist同期" onclick="triggerSync()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+          </button>
+          <button class="capsule-btn" title="このメモを削除" onclick="deleteCurrentNote()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
         </div>
 
         <button class="capsule-btn capsule-trigger" title="装飾メニュー展開" onclick="toggleCapsule()">
@@ -126,45 +140,77 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
     </button>
 
+    <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+
     <div class="variant-bottom-sheet" id="variant-sheet">
       <div class="sheet-handle" onclick="toggleSheet()"></div>
       <div class="dock-grid">
-        <button class="dock-item" onclick="cmdBold(); toggleSheet();">
-          <div class="dock-icon-box"><b>B</b></div>
-          <span>太字</span>
+        <button class="dock-item" onclick="cmdBold(); closeSheet();">
+          <div class="dock-icon-box"><b>B</b></div><span>太字</span>
         </button>
-        <button class="dock-item" onclick="cmdH2(); toggleSheet();">
-          <div class="dock-icon-box">H2</div>
-          <span>見出し</span>
+        <button class="dock-item" onclick="cmdItalic(); closeSheet();">
+          <div class="dock-icon-box"><i>I</i></div><span>斜体</span>
         </button>
-        <button class="dock-item" onclick="cmdListUl(); toggleSheet();">
-          <div class="dock-icon-box">•≡</div>
-          <span>箇条書き</span>
+        <button class="dock-item" onclick="cmdStrike(); closeSheet();">
+          <div class="dock-icon-box"><s>S</s></div><span>取り消し</span>
         </button>
-        <button class="dock-item" onclick="cmdTask(); toggleSheet();">
-          <div class="dock-icon-box">☑</div>
-          <span>タスク</span>
-        </button>
-        <button class="dock-item" onclick="cmdMath(); toggleSheet();">
-          <div class="dock-icon-box">∑</div>
-          <span>数式</span>
+        <button class="dock-item" onclick="cmdCode(); closeSheet();">
+          <div class="dock-icon-box">‹›</div><span>コード</span>
         </button>
 
-        <button class="dock-item" onclick="openDrawer(); toggleSheet();">
-          <div class="dock-icon-box">📚</div>
-          <span>一覧</span>
+        <button class="dock-item" onclick="cmdH2(); closeSheet();">
+          <div class="dock-icon-box">H2</div><span>見出し2</span>
         </button>
-        <button class="dock-item" onclick="createNewNote(); toggleSheet();">
-          <div class="dock-icon-box">✍️</div>
-          <span>新規</span>
+        <button class="dock-item" onclick="cmdH3(); closeSheet();">
+          <div class="dock-icon-box">H3</div><span>見出し3</span>
         </button>
-        <button class="dock-item" onclick="triggerSync(); toggleSheet();">
-          <div class="dock-icon-box">☁️</div>
-          <span>同期</span>
+        <button class="dock-item" onclick="cmdListUl(); closeSheet();">
+          <div class="dock-icon-box">•≡</div><span>箇条書き</span>
         </button>
-        <button class="dock-item" onclick="openSettings();">
-          <div class="dock-icon-box">⚙️</div>
-          <span>設定</span>
+        <button class="dock-item" onclick="cmdListOl(); closeSheet();">
+          <div class="dock-icon-box">1≡</div><span>番号</span>
+        </button>
+
+        <button class="dock-item" onclick="cmdTask(); closeSheet();">
+          <div class="dock-icon-box">☑</div><span>タスク</span>
+        </button>
+        <button class="dock-item" onclick="cmdQuote(); closeSheet();">
+          <div class="dock-icon-box">❞</div><span>引用</span>
+        </button>
+        <button class="dock-item" onclick="cmdMath(); closeSheet();">
+          <div class="dock-icon-box">∑</div><span>数式</span>
+        </button>
+        <button class="dock-item" onclick="cmdImage(); closeSheet();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          </div><span>画像</span>
+        </button>
+
+        <button class="dock-item" onclick="openDrawer(); closeSheet();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V6a2 2 0 0 1 2-2h13v16H6a2 2 0 0 1-2-2Z"/><path d="M9 4v16"/></svg>
+          </div><span>一覧</span>
+        </button>
+        <button class="dock-item" onclick="createNewNote(); closeSheet();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div><span>新規</span>
+        </button>
+        <button class="dock-item" onclick="triggerSync(); closeSheet();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+          </div><span>同期</span>
+        </button>
+        <button class="dock-item" onclick="closeSheet(); openSettings();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div><span>設定</span>
+        </button>
+
+        <button class="dock-item dock-item-danger" onclick="closeSheet(); deleteCurrentNote();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </div><span>削除</span>
         </button>
       </div>
     </div>
@@ -182,11 +228,16 @@
         </button>
       </div>
 
-      <div class="bar-btn-group">
-        <button class="bar-tool-btn" onclick="cmdBold()"><b>B</b></button>
-        <button class="bar-tool-btn" onclick="cmdH2()">H2</button>
-        <button class="bar-tool-btn" onclick="cmdMath()">∑</button>
-        <button class="bar-tool-btn" onclick="cmdImage()">🖼</button>
+      <div class="bar-btn-group bar-btn-group-scroll">
+        <button class="bar-tool-btn" onclick="cmdBold()" title="太字"><b>B</b></button>
+        <button class="bar-tool-btn" onclick="cmdItalic()" title="斜体"><i>I</i></button>
+        <button class="bar-tool-btn" onclick="cmdH2()" title="見出し2">H2</button>
+        <button class="bar-tool-btn" onclick="cmdListUl()" title="箇条書き">•≡</button>
+        <button class="bar-tool-btn" onclick="cmdTask()" title="タスク">☑</button>
+        <button class="bar-tool-btn" onclick="cmdMath()" title="数式">∑</button>
+        <button class="bar-tool-btn" onclick="cmdImage()" title="画像">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </button>
       </div>
 
       <div class="bar-btn-group">
@@ -199,9 +250,20 @@
       </div>
     </div>
 
+    <!-- Toast (non-blocking status) -->
+    <div class="zen-toast" id="zen-toast"></div>
+
+    <!-- Boot overlay: removed once the editor is ready -->
+    <div class="boot-overlay" id="boot-overlay">
+      <div class="boot-box">
+        <div class="boot-spinner"></div>
+        <p class="boot-msg">読み込み中…</p>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Main Application Script -->
+  <!-- Main Application Script (このファイルだけがアプリの実体) -->
   <script src="js/app.js"></script>
 </body>
 </html>

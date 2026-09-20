@@ -3,6 +3,7 @@
    ======================================================== */
 
 :root {
+  /* themes.css が上書きする。ここは data-theme が無いときの保険。 */
   --bg-color: #faf9f6;
   --text-color: #242424;
   --text-muted: #8e8d8a;
@@ -10,7 +11,15 @@
   --border-color: rgba(0, 0, 0, 0.08);
   --code-bg: rgba(0, 0, 0, 0.04);
   --quote-border: #d3cfc7;
-  
+  --quote-text: #5b564e;
+
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-solid: #ffffff;
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --active-bg: rgba(0, 0, 0, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.16);
+  --danger-color: #b3261e;
+
   --font-serif: "Newsreader", "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Meiryo", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -54,6 +63,14 @@ html, body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+
+/* 起動が終わるまで道具は触らせない（押しても何も起きない時間をなくす） */
+body:not(.zen-ready) .variant-capsule-wrapper,
+body:not(.zen-ready) .variant-corner-fab,
+body:not(.zen-ready) .variant-keyboard-bar {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 /* ProseMirror / Tiptap Surface */
@@ -125,7 +142,7 @@ html, body {
   margin-bottom: 0.35em;
 }
 
-/* Tiptap TaskList / Checklist (Fixed & Perfectly Aligned) */
+/* Tiptap TaskList / Checklist */
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
   padding: 0;
@@ -192,7 +209,7 @@ html, body {
   border-left: 2.5px solid var(--quote-border);
   padding: 4px 0 4px 16px;
   margin: 1.4em 0;
-  color: #555;
+  color: var(--quote-text);
   font-style: italic;
 }
 
@@ -231,7 +248,12 @@ html, body {
   border-radius: 12px;
   margin: 1.4em 0;
   display: block;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+/* 数式ブロックの前後にカーソルを置けるように（StarterKit の Gapcursor） */
+.ProseMirror-gapcursor:after {
+  border-top: 1.5px solid var(--text-color);
 }
 
 /* Math Displays (KaTeX) */
@@ -246,11 +268,12 @@ html, body {
   position: relative;
   border-radius: 8px;
   padding: 4px 8px;
+  cursor: pointer;
   transition: background 0.15s;
 }
 
 .math-block-wrapper:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--hover-bg);
 }
 
 /* Inline Math (KaTeX) */
@@ -266,10 +289,5 @@ html, body {
 }
 
 .math-inline-wrapper:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-/* Placeholder for empty state */
-#editor-viewport:empty:before {
-  content: "";
+  background: var(--hover-bg);
 }

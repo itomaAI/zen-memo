@@ -2,13 +2,15 @@
    Zen Memo - 3 Selectable UI Styles & Mobile Interaction
    ======================================================== */
 
-/* Common Overlay & Drawer (Notes List) */
+/* ========================================================
+   Common Overlay & Drawer (Notes List)
+   ======================================================== */
 .drawer-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -30,7 +32,7 @@
   bottom: 0;
   width: min(340px, 82vw);
   background: var(--bg-color);
-  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 12px 0 40px var(--shadow-color);
   transform: translateX(-100%);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 510;
@@ -67,25 +69,53 @@
   list-style: none;
 }
 
+.memo-empty {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 16px 14px;
+}
+
 .memo-item {
-  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 8px;
   border-radius: 12px;
   margin-bottom: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease;
   border: 1px solid transparent;
 }
 
 .memo-item:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--hover-bg);
 }
 
 .memo-item.active {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--active-bg);
   border-color: var(--border-color);
 }
 
+/* 本体（開く） */
+.memo-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 6px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
 .memo-item-title {
+  display: block;
+  max-width: 100%;
   font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 500;
@@ -93,16 +123,41 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
 }
 
 .memo-item-meta {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* 削除（どのUIスタイルでも一覧から消せるように） */
+.memo-item-del {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.memo-item:hover .memo-item-del,
+.memo-item-del:focus-visible {
+  opacity: 1;
+}
+
+.memo-item-del:hover,
+.memo-item-del:active {
+  background: var(--hover-bg);
+  color: var(--danger-color);
+  opacity: 1;
 }
 
 .drawer-footer {
@@ -111,6 +166,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.drawer-footer-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .btn-new-memo {
@@ -123,7 +185,7 @@
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px var(--shadow-color);
   transition: opacity 0.15s;
 }
 
@@ -143,28 +205,23 @@
   display: flex;
   align-items: center;
   pointer-events: none;
-  transition: bottom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 100%;
 }
 
 .capsule-pill {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 14px 40px var(--shadow-color);
   border-radius: 999px;
   padding: 5px;
   display: flex;
   align-items: center;
   gap: 2px;
+  max-width: calc(100vw - 24px);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-[data-theme="dark"] .capsule-pill {
-  background: rgba(28, 28, 32, 0.94);
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
 }
 
 .capsule-btn {
@@ -184,7 +241,7 @@
 }
 
 .capsule-btn:active {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--active-bg);
 }
 
 .capsule-expand-tray {
@@ -192,7 +249,7 @@
   align-items: center;
   gap: 2px;
   overflow-x: auto;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 110px));
   padding: 0 2px;
   scrollbar-width: none;
 }
@@ -207,7 +264,7 @@
 
 .capsule-pill.expanded .capsule-trigger {
   transform: rotate(45deg);
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-bg);
 }
 
 /* ========================================================
@@ -226,14 +283,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 24px var(--shadow-color);
   cursor: pointer;
   z-index: 400;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
 }
 
 .variant-corner-fab:active {
   transform: scale(0.92);
+}
+
+/* シートが出ている間は FAB を隠す（下敷きになって押せないため） */
+body.sheet-open .variant-corner-fab {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* シートの外側を触れば閉じられるようにする */
+.sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 440;
+}
+
+.sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .variant-bottom-sheet {
@@ -245,10 +324,12 @@
   border-top: 1px solid var(--border-color);
   border-radius: 24px 24px 0 0;
   padding: 16px 20px calc(24px + env(safe-area-inset-bottom)) 20px;
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -12px 48px var(--shadow-color);
   transform: translateY(105%);
   transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 450;
+  max-height: 80%;
+  overflow-y: auto;
 }
 
 .variant-bottom-sheet.open {
@@ -289,7 +370,7 @@
   width: 46px;
   height: 46px;
   border-radius: 23px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--code-bg);
   color: var(--text-color);
   display: flex;
   align-items: center;
@@ -299,7 +380,11 @@
 }
 
 .dock-item:active .dock-icon-box {
-  background: rgba(0, 0, 0, 0.09);
+  background: var(--active-bg);
+}
+
+.dock-item-danger .dock-icon-box {
+  color: var(--danger-color);
 }
 
 /* ========================================================
@@ -312,27 +397,36 @@
   right: 0;
   height: calc(52px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 16px;
+  gap: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
   z-index: 400;
-  transition: bottom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-[data-theme="dark"] .variant-keyboard-bar {
-  background: rgba(24, 24, 27, 0.92);
 }
 
 .bar-btn-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+/* 道具が増えても溢れないように、真ん中だけ横スクロールさせる */
+.bar-btn-group-scroll {
+  flex: 1 1 auto;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bar-btn-group-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .bar-tool-btn {
@@ -347,10 +441,15 @@
   justify-content: center;
   cursor: pointer;
   font-size: 15px;
+  flex-shrink: 0;
 }
 
 .bar-tool-btn:active {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--hover-bg);
+}
+
+@media (max-width: 400px) {
+  .bar-tool-btn { width: 34px; }
 }
 
 /* ========================================================
@@ -360,8 +459,8 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -384,7 +483,7 @@
   border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 60px var(--shadow-color);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -413,6 +512,14 @@
   letter-spacing: 0.04em;
 }
 
+.form-hint {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* 16px 未満だと iOS が勝手に拡大するので、入力欄は 16px を下回らせない */
 .form-input, .form-select, .form-textarea {
   width: 100%;
   padding: 10px 12px;
@@ -420,7 +527,7 @@
   border: 1px solid var(--border-color);
   border-radius: 10px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-color);
   outline: none;
   transition: border-color 0.15s;
@@ -428,7 +535,7 @@
 
 .form-textarea {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 16px;
   height: 140px;
   resize: vertical;
 }
@@ -452,4 +559,89 @@
 
 .btn-primary:active {
   opacity: 0.85;
+}
+
+/* ========================================================
+   Toast (進行状況・結果。alert で作業を止めないため)
+   ======================================================== */
+.zen-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 12px);
+  max-width: min(92vw, 420px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px var(--shadow-color);
+  color: var(--text-color);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 620;
+}
+
+.zen-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ========================================================
+   Boot overlay (読み込み中／読み込み失敗)
+   ======================================================== */
+.boot-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 700;
+}
+
+.boot-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 420px;
+  text-align: center;
+  font-family: var(--font-sans);
+}
+
+.boot-msg {
+  font-size: 14px;
+  color: var(--text-color);
+  line-height: 1.7;
+}
+
+.boot-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.boot-overlay.error .boot-msg {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+.boot-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-muted);
+  animation: zen-spin 0.8s linear infinite;
+}
+
+@keyframes zen-spin {
+  to { transform: rotate(360deg); }
 }
