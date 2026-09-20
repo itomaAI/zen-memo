@@ -489,7 +489,7 @@ class ImageHandler {
 }
 
 /* ========================================================
-   6. Editor Core (WYSIWYG, Markdown Shortcuts, KaTeX, Title)
+   6. Editor Core (Full Markdown/WYSIWYG Engine)
    ======================================================== */
 class ZenEditor {
   constructor(element, options = {}) {
@@ -512,22 +512,59 @@ class ZenEditor {
 
   handleInput() {
     this.extractAndNotifyTitle();
+    this.checkInlineRules();
     this.onChange(this.getMarkdown(), this.getHTML());
   }
 
   handleKeyDown(e) {
-    if (e.key === ' ' || e.key === 'Spacebar') {
-      if (this.checkInputRule()) {
-        e.preventDefault();
-        this.extractAndNotifyTitle();
-        this.onChange(this.getMarkdown(), this.getHTML());
-        return;
-      }
-    }
-
-    if (e.key === 'Enter') {
+    // 1. Enter Key handling (List continuation/exit, Blockquote exit)
+    if (e.key === 'Enter' && !e.shiftKey) {
       const sel = window.getSelection();
       if (sel && sel.anchorNode) {
+        const li = sel.anchorNode.nodeType === Node.ELEMENT_NODE && sel.anchorNode.tagName === 'LI'
+          ? sel.anchorNode
+          : sel.anchorNode.parentElement?.closest('li');
+
+        if (li) {
+          // If empty list item, exit list!
+          const text = li.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+          if (text === '') {
+            e.preventDefault();
+            const parentList = li.closest('ul, ol');
+            li.remove();
+
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            if (parentList) {
+              parentList.after(p);
+              if (!parentList.querySelector('li')) {
+                parentList.remove();
+              }
+            } else {
+              this.el.appendChild(p);
+            }
+            this.setCursorToEnd(p);
+            this.handleInput();
+            return;
+          }
+        }
+
+        // Inside Blockquote
+        const bq = sel.anchorNode.parentElement?.closest('blockquote');
+        if (bq) {
+          const text = bq.textContent.trim();
+          if (text === '') {
+            e.preventDefault();
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            bq.replaceWith(p);
+            this.setCursorToEnd(p);
+            this.handleInput();
+            return;
+          }
+        }
+
+        // Inside H1 Title
         const block = this.getClosestBlock(sel.anchorNode);
         if (block && block.tagName === 'H1') {
           setTimeout(() => {
@@ -543,9 +580,59 @@ class ZenEditor {
         }
       }
     }
+
+    // 2. Backspace Key handling (Exit empty list item or heading to paragraph)
+    if (e.key === 'Backspace') {
+      const sel = window.getSelection();
+      if (sel && sel.isCollapsed && sel.anchorNode) {
+        const li = sel.anchorNode.nodeType === Node.ELEMENT_NODE && sel.anchorNode.tagName === 'LI'
+          ? sel.anchorNode
+          : sel.anchorNode.parentElement?.closest('li');
+
+        if (li && li.textContent.trim() === '') {
+          e.preventDefault();
+          const parentList = li.closest('ul, ol');
+          const p = document.createElement('p');
+          p.innerHTML = '<br>';
+          li.remove();
+          if (parentList) {
+            parentList.after(p);
+            if (!parentList.querySelector('li')) parentList.remove();
+          } else {
+            this.el.appendChild(p);
+          }
+          this.setCursorToEnd(p);
+          this.handleInput();
+          return;
+        }
+
+        const block = this.getClosestBlock(sel.anchorNode);
+        if (block && ['H2', 'H3', 'H4', 'BLOCKQUOTE'].includes(block.tagName)) {
+          if (block.textContent.trim() === '') {
+            e.preventDefault();
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            block.replaceWith(p);
+            this.setCursorToEnd(p);
+            this.handleInput();
+            return;
+          }
+        }
+      }
+    }
+
+    // 3. Space Key handling for Block Markdown Shortcuts
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      if (this.checkBlockInputRule()) {
+        e.preventDefault();
+        this.extractAndNotifyTitle();
+        this.onChange(this.getMarkdown(), this.getHTML());
+        return;
+      }
+    }
   }
 
-  checkInputRule() {
+  checkBlockInputRule() {
     const sel = window.getSelection();
     if (!sel || !sel.isCollapsed || !sel.anchorNode) return false;
 
@@ -557,13 +644,34 @@ class ZenEditor {
 
     const textBefore = node.textContent.slice(0, sel.anchorOffset);
 
+    // Headings
+    if (textBefore === '#') return this.transformBlock(block, 'h1', 1);
     if (textBefore === '##') return this.transformBlock(block, 'h2', 2);
     if (textBefore === '###') return this.transformBlock(block, 'h3', 3);
-    if (textBefore === '#') return this.transformBlock(block, 'h1', 1);
+    if (textBefore === '####') return this.transformBlock(block, 'h4', 4);
+
+    // Lists
     if (textBefore === '-' || textBefore === '*') return this.transformToList(block, 'ul');
     if (textBefore === '1.') return this.transformToList(block, 'ol');
+
+    // Quote
     if (textBefore === '>') return this.transformBlock(block, 'blockquote', 1);
+
+    // Code Block
+    if (textBefore === '```') {
+      const pre = document.createElement('pre');
+      const code = document.createElement('code');
+      code.innerHTML = '<br>';
+      pre.appendChild(code);
+      block.replaceWith(pre);
+      this.setCursorToEnd(code);
+      return true;
+    }
+
+    // Block Math
     if (textBefore === '$$') return this.transformToMathBlock(block);
+
+    // Horizontal Rule
     if (textBefore === '---') {
       const hr = document.createElement('hr');
       const p = document.createElement('p');
@@ -574,6 +682,124 @@ class ZenEditor {
     }
 
     return false;
+  }
+
+  /**
+   * Inline Markdown Rules: $formula$, **bold**, *italic*, ~~strike~~, `code`
+   */
+  checkInlineRules() {
+    const sel = window.getSelection();
+    if (!sel || !sel.isCollapsed || !sel.anchorNode) return;
+
+    const node = sel.anchorNode;
+    if (node.nodeType !== Node.TEXT_NODE) return;
+
+    const text = node.textContent;
+    const caret = sel.anchorOffset;
+    const textBefore = text.slice(0, caret);
+
+    // 1. Inline Math: $formula$
+    const mathMatch = textBefore.match(/(^|[^\$])\$([^\$\n]+)\$$/);
+    if (mathMatch) {
+      const fullMatch = mathMatch[0];
+      const formula = mathMatch[2];
+      const matchIndex = caret - formula.length - 2;
+
+      this.replaceTextWithElement(node, matchIndex, caret, (container) => {
+        const mathEl = this.createInlineMathElement(formula);
+        container.appendChild(mathEl);
+        const space = document.createTextNode('\u00A0');
+        container.appendChild(space);
+      });
+      return;
+    }
+
+    // 2. Inline Bold: **text**
+    const boldMatch = textBefore.match(/\*\*([^\*\n]+)\*\*$/);
+    if (boldMatch) {
+      const word = boldMatch[1];
+      const matchIndex = caret - word.length - 4;
+      this.replaceTextWithElement(node, matchIndex, caret, (container) => {
+        const strong = document.createElement('strong');
+        strong.textContent = word;
+        container.appendChild(strong);
+        container.appendChild(document.createTextNode('\u00A0'));
+      });
+      return;
+    }
+
+    // 3. Inline Strikethrough: ~~text~~
+    const strikeMatch = textBefore.match(/~~([^~\n]+)~~$/);
+    if (strikeMatch) {
+      const word = strikeMatch[1];
+      const matchIndex = caret - word.length - 4;
+      this.replaceTextWithElement(node, matchIndex, caret, (container) => {
+        const del = document.createElement('del');
+        del.textContent = word;
+        container.appendChild(del);
+        container.appendChild(document.createTextNode('\u00A0'));
+      });
+      return;
+    }
+
+    // 4. Inline Code: `code`
+    const codeMatch = textBefore.match(/`([^`\n]+)`$/);
+    if (codeMatch) {
+      const word = codeMatch[1];
+      const matchIndex = caret - word.length - 2;
+      this.replaceTextWithElement(node, matchIndex, caret, (container) => {
+        const code = document.createElement('code');
+        code.textContent = word;
+        container.appendChild(code);
+        container.appendChild(document.createTextNode('\u00A0'));
+      });
+      return;
+    }
+  }
+
+  replaceTextWithElement(textNode, startIdx, endIdx, populateCallback) {
+    const parent = textNode.parentNode;
+    if (!parent) return;
+
+    const fullText = textNode.textContent;
+    const beforeText = fullText.slice(0, startIdx);
+    const afterText = fullText.slice(endIdx);
+
+    const fragment = document.createDocumentFragment();
+    if (beforeText) fragment.appendChild(document.createTextNode(beforeText));
+
+    const span = document.createElement('span');
+    populateCallback(span);
+    while (span.firstChild) {
+      fragment.appendChild(span.firstChild);
+    }
+
+    const afterNode = document.createTextNode(afterText);
+    fragment.appendChild(afterNode);
+
+    parent.replaceChild(fragment, textNode);
+    this.setCursorToEnd(afterNode);
+  }
+
+  createInlineMathElement(tex) {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'math-inline-wrapper';
+    wrapper.setAttribute('contenteditable', 'false');
+    wrapper.setAttribute('data-tex', tex);
+
+    const katexSpan = document.createElement('span');
+    katexSpan.className = 'katex-inline';
+    if (window.katex) {
+      try {
+        window.katex.render(tex, katexSpan, { displayMode: false, throwOnError: false });
+      } catch (e) {
+        katexSpan.textContent = `$${tex}$`;
+      }
+    } else {
+      katexSpan.textContent = `$${tex}$`;
+    }
+    wrapper.appendChild(katexSpan);
+    return wrapper;
   }
 
   transformBlock(block, tagName, prefixLength) {
@@ -591,7 +817,8 @@ class ZenEditor {
   transformToList(block, listType) {
     const list = document.createElement(listType);
     const li = document.createElement('li');
-    li.innerHTML = '<br>';
+    const remainingText = block.textContent.replace(/^([-*]|\d+\.)\s*/, '').trim();
+    li.innerHTML = remainingText ? this.escapeHtml(remainingText) : '<br>';
     list.appendChild(li);
     block.replaceWith(list);
     this.setCursorToEnd(li);
@@ -630,17 +857,18 @@ class ZenEditor {
     return true;
   }
 
+  // Click handler to edit both block math and inline math
   handleClick(e) {
-    const mathWrapper = e.target.closest('.math-block-wrapper');
-    if (mathWrapper) {
-      const currentTex = mathWrapper.getAttribute('data-tex') || '';
-      const newTex = prompt("数式を編集:", currentTex);
+    const mathBlock = e.target.closest('.math-block-wrapper');
+    if (mathBlock) {
+      const currentTex = mathBlock.getAttribute('data-tex') || '';
+      const newTex = prompt("ブロック数式を編集 (LaTeX):", currentTex);
       if (newTex !== null) {
         if (!newTex.trim()) {
-          mathWrapper.remove();
+          mathBlock.remove();
         } else {
-          mathWrapper.setAttribute('data-tex', newTex);
-          const katexContainer = mathWrapper.querySelector('.katex-display') || mathWrapper;
+          mathBlock.setAttribute('data-tex', newTex);
+          const katexContainer = mathBlock.querySelector('.katex-display') || mathBlock;
           katexContainer.innerHTML = '';
           if (window.katex) {
             window.katex.render(newTex, katexContainer, { displayMode: true, throwOnError: false });
@@ -648,7 +876,133 @@ class ZenEditor {
         }
         this.onChange(this.getMarkdown(), this.getHTML());
       }
+      return;
     }
+
+    const mathInline = e.target.closest('.math-inline-wrapper');
+    if (mathInline) {
+      const currentTex = mathInline.getAttribute('data-tex') || '';
+      const newTex = prompt("インライン数式を編集 (LaTeX):", currentTex);
+      if (newTex !== null) {
+        if (!newTex.trim()) {
+          mathInline.remove();
+        } else {
+          mathInline.setAttribute('data-tex', newTex);
+          const katexSpan = mathInline.querySelector('.katex-inline') || mathInline;
+          katexSpan.innerHTML = '';
+          if (window.katex) {
+            window.katex.render(newTex, katexSpan, { displayMode: false, throwOnError: false });
+          }
+        }
+        this.onChange(this.getMarkdown(), this.getHTML());
+      }
+      return;
+    }
+  }
+
+  // Heading Toggle (H1-H4 <-> P)
+  toggleHeading(level = 2) {
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode) return;
+
+    const block = this.getClosestBlock(sel.anchorNode);
+    if (!block) return;
+
+    const targetTag = `H${level}`;
+    if (block.tagName === targetTag) {
+      // Toggle off -> convert to P
+      const p = document.createElement('p');
+      p.innerHTML = block.innerHTML;
+      block.replaceWith(p);
+      this.setCursorToEnd(p);
+    } else {
+      // Toggle on -> convert to H[level]
+      const h = document.createElement(targetTag.toLowerCase());
+      if (targetTag === 'H1' && block === this.el.firstElementChild) {
+        h.classList.add('doc-title');
+      }
+      h.innerHTML = block.innerHTML;
+      block.replaceWith(h);
+      this.setCursorToEnd(h);
+    }
+    this.extractAndNotifyTitle();
+    this.onChange(this.getMarkdown(), this.getHTML());
+  }
+
+  // List Toggle (UL / OL <-> P)
+  toggleList(type = 'ul') {
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode) return;
+
+    const block = this.getClosestBlock(sel.anchorNode);
+    if (!block) return;
+
+    const li = block.tagName === 'LI' ? block : block.closest('li');
+    if (li) {
+      // Already inside a list item -> toggle off to P
+      const list = li.closest('ul, ol');
+      const p = document.createElement('p');
+      p.innerHTML = li.innerHTML;
+      li.remove();
+      if (list) {
+        list.after(p);
+        if (!list.querySelector('li')) list.remove();
+      } else {
+        this.el.appendChild(p);
+      }
+      this.setCursorToEnd(p);
+    } else {
+      // Convert to list
+      const list = document.createElement(type);
+      const newLi = document.createElement('li');
+      newLi.innerHTML = block.innerHTML || '<br>';
+      list.appendChild(newLi);
+      block.replaceWith(list);
+      this.setCursorToEnd(newLi);
+    }
+    this.onChange(this.getMarkdown(), this.getHTML());
+  }
+
+  // Quote Toggle
+  toggleQuote() {
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode) return;
+
+    const block = this.getClosestBlock(sel.anchorNode);
+    if (!block) return;
+
+    const bq = block.tagName === 'BLOCKQUOTE' ? block : block.closest('blockquote');
+    if (bq) {
+      const p = document.createElement('p');
+      p.innerHTML = bq.innerHTML;
+      bq.replaceWith(p);
+      this.setCursorToEnd(p);
+    } else {
+      const newBq = document.createElement('blockquote');
+      newBq.innerHTML = block.innerHTML || '<br>';
+      block.replaceWith(newBq);
+      this.setCursorToEnd(newBq);
+    }
+    this.onChange(this.getMarkdown(), this.getHTML());
+  }
+
+  // Inline Code Toggle
+  formatCode() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    const parentCode = sel.anchorNode.parentElement?.closest('code');
+    if (parentCode) {
+      // Unwrap code
+      const text = parentCode.textContent;
+      parentCode.replaceWith(document.createTextNode(text));
+    } else if (!range.collapsed) {
+      const code = document.createElement('code');
+      code.appendChild(range.extractContents());
+      range.insertNode(code);
+    }
+    this.onChange(this.getMarkdown(), this.getHTML());
   }
 
   extractAndNotifyTitle() {
@@ -704,41 +1058,59 @@ class ZenEditor {
 
     for (const node of nodes) {
       const tag = node.tagName.toLowerCase();
-      if (tag === 'h1') md += `# ${node.textContent.trim()}\n\n`;
-      else if (tag === 'h2') md += `## ${node.textContent.trim()}\n\n`;
-      else if (tag === 'h3') md += `### ${node.textContent.trim()}\n\n`;
-      else if (tag === 'blockquote') md += `> ${node.textContent.trim()}\n\n`;
+      if (tag === 'h1') md += `# ${this.convertInlineToMarkdown(node)}\n\n`;
+      else if (tag === 'h2') md += `## ${this.convertInlineToMarkdown(node)}\n\n`;
+      else if (tag === 'h3') md += `### ${this.convertInlineToMarkdown(node)}\n\n`;
+      else if (tag === 'h4') md += `#### ${this.convertInlineToMarkdown(node)}\n\n`;
+      else if (tag === 'blockquote') md += `> ${this.convertInlineToMarkdown(node)}\n\n`;
       else if (tag === 'p') {
         const text = node.innerHTML.trim();
         if (text && text !== '<br>') md += `${this.convertInlineToMarkdown(node)}\n\n`;
       } else if (tag === 'ul') {
-        for (const li of node.querySelectorAll('li')) md += `- ${li.textContent.trim()}\n`;
+        for (const li of node.querySelectorAll('li')) md += `- ${this.convertInlineToMarkdown(li)}\n`;
         md += '\n';
       } else if (tag === 'ol') {
         let i = 1;
-        for (const li of node.querySelectorAll('li')) md += `${i++}. ${li.textContent.trim()}\n`;
+        for (const li of node.querySelectorAll('li')) md += `${i++}. ${this.convertInlineToMarkdown(li)}\n`;
         md += '\n';
       } else if (tag === 'hr') md += `---\n\n`;
       else if (node.classList.contains('math-block-wrapper')) {
         const tex = node.getAttribute('data-tex') || '';
         md += `$$\n${tex}\n$$\n\n`;
+      } else if (tag === 'pre') {
+        md += `\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
       } else if (tag === 'img') {
         const alt = node.getAttribute('alt') || 'image';
         const src = node.getAttribute('src') || '';
         md += `![${alt}](${src})\n\n`;
       } else {
-        md += `${node.textContent.trim()}\n\n`;
+        md += `${this.convertInlineToMarkdown(node)}\n\n`;
       }
     }
     return md.trim();
   }
 
   convertInlineToMarkdown(node) {
-    let html = node.innerHTML;
+    let clone = node.cloneNode(true);
+
+    // Convert Inline Math wrappers back to $formula$
+    clone.querySelectorAll('.math-inline-wrapper').forEach(w => {
+      const tex = w.getAttribute('data-tex') || '';
+      w.replaceWith(`$${tex}$`);
+    });
+
+    let html = clone.innerHTML;
+    // Images
     html = html.replace(/<img[^>]*src=["']([^"']+)["'][^>]*alt=["']?([^"'>]*)["']?[^>]*>/gi, '![$2]($1)');
+    // Bold
     html = html.replace(/<(b|strong)[^>]*>(.*?)<\/\1>/gi, '**$2**');
+    // Italic
     html = html.replace(/<(i|em)[^>]*>(.*?)<\/\1>/gi, '*$2*');
+    // Strikethrough
+    html = html.replace(/<(del|s)[^>]*>(.*?)<\/\1>/gi, '~~$2~~');
+    // Inline Code
     html = html.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+
     const temp = document.createElement('div');
     temp.innerHTML = html;
     return temp.textContent || '';
@@ -749,11 +1121,14 @@ class ZenEditor {
     const lines = markdown.split('\n');
     let inMath = false;
     let mathBuffer = [];
+    let inCode = false;
+    let codeBuffer = [];
     let currentList = null;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
+      // Block Math $$ ... $$
       if (line.trim() === '$$') {
         if (!inMath) {
           inMath = true;
@@ -787,6 +1162,28 @@ class ZenEditor {
         continue;
       }
 
+      // Code Block ``` ... ```
+      if (line.trim().startsWith('```')) {
+        if (!inCode) {
+          inCode = true;
+          codeBuffer = [];
+        } else {
+          inCode = false;
+          const pre = document.createElement('pre');
+          const code = document.createElement('code');
+          code.textContent = codeBuffer.join('\n');
+          pre.appendChild(code);
+          this.el.appendChild(pre);
+        }
+        continue;
+      }
+
+      if (inCode) {
+        codeBuffer.push(line);
+        continue;
+      }
+
+      // Lists
       const isUl = line.match(/^[-*]\s+(.*)$/);
       const isOl = line.match(/^(\d+)\.\s+(.*)$/);
 
@@ -796,7 +1193,7 @@ class ZenEditor {
           this.el.appendChild(currentList);
         }
         const li = document.createElement('li');
-        li.textContent = isUl[1];
+        this.renderInlineContent(isUl[1], li);
         currentList.appendChild(li);
         continue;
       } else if (isOl) {
@@ -805,7 +1202,7 @@ class ZenEditor {
           this.el.appendChild(currentList);
         }
         const li = document.createElement('li');
-        li.textContent = isOl[2];
+        this.renderInlineContent(isOl[2], li);
         currentList.appendChild(li);
         continue;
       } else {
@@ -817,19 +1214,23 @@ class ZenEditor {
       if (line.startsWith('# ')) {
         const h1 = document.createElement('h1');
         h1.className = 'doc-title';
-        h1.textContent = line.replace(/^#\s+/, '');
+        this.renderInlineContent(line.replace(/^#\s+/, ''), h1);
         this.el.appendChild(h1);
       } else if (line.startsWith('## ')) {
         const h2 = document.createElement('h2');
-        h2.textContent = line.replace(/^##\s+/, '');
+        this.renderInlineContent(line.replace(/^##\s+/, ''), h2);
         this.el.appendChild(h2);
       } else if (line.startsWith('### ')) {
         const h3 = document.createElement('h3');
-        h3.textContent = line.replace(/^###\s+/, '');
+        this.renderInlineContent(line.replace(/^###\s+/, ''), h3);
         this.el.appendChild(h3);
+      } else if (line.startsWith('#### ')) {
+        const h4 = document.createElement('h4');
+        this.renderInlineContent(line.replace(/^####\s+/, ''), h4);
+        this.el.appendChild(h4);
       } else if (line.startsWith('> ')) {
         const bq = document.createElement('blockquote');
-        bq.textContent = line.replace(/^>\s+/, '');
+        this.renderInlineContent(line.replace(/^>\s+/, ''), bq);
         this.el.appendChild(bq);
       } else if (line.match(/^!\[(.*?)\]\((.*?)\)$/)) {
         const m = line.match(/^!\[(.*?)\]\((.*?)\)$/);
@@ -841,7 +1242,7 @@ class ZenEditor {
         this.el.appendChild(document.createElement('hr'));
       } else {
         const p = document.createElement('p');
-        p.textContent = line;
+        this.renderInlineContent(line, p);
         this.el.appendChild(p);
       }
     }
@@ -849,12 +1250,53 @@ class ZenEditor {
     this.extractAndNotifyTitle();
   }
 
-  format(cmd, val = null) {
-    document.execCommand(cmd, false, val);
+  renderInlineContent(text, container) {
+    // Parse inline math $...$, bold **..**, italic *..*, strike ~~..~~, code `..`
+    const regex = /(\$([^\$\n]+)\$|\*\*([^\*\n]+)\*\*|\*([^\*\n]+)\*|~~([^~\n]+)~~|`([^`\n]+)`)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        container.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+
+      if (match[2]) {
+        // Inline Math $formula$
+        container.appendChild(this.createInlineMathElement(match[2]));
+      } else if (match[3]) {
+        // Bold
+        const strong = document.createElement('strong');
+        strong.textContent = match[3];
+        container.appendChild(strong);
+      } else if (match[4]) {
+        // Italic
+        const em = document.createElement('em');
+        em.textContent = match[4];
+        container.appendChild(em);
+      } else if (match[5]) {
+        // Strike
+        const del = document.createElement('del');
+        del.textContent = match[5];
+        container.appendChild(del);
+      } else if (match[6]) {
+        // Code
+        const code = document.createElement('code');
+        code.textContent = match[6];
+        container.appendChild(code);
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      container.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
   }
 
-  insertHeading(level = 2) {
-    document.execCommand('formatBlock', false, `<h${level}>`);
+  format(cmd, val = null) {
+    document.execCommand(cmd, false, val);
+    this.onChange(this.getMarkdown(), this.getHTML());
   }
 
   insertImage(src, alt = 'image') {
@@ -1017,26 +1459,42 @@ class ZenApp {
 
     window.cmdBold = () => this.editor.format('bold');
     window.cmdItalic = () => this.editor.format('italic');
-    window.cmdH2 = () => this.editor.insertHeading(2);
-    window.cmdH3 = () => this.editor.insertHeading(3);
+    window.cmdStrike = () => this.editor.format('strikeThrough');
+    window.cmdCode = () => this.editor.formatCode();
+    window.cmdH2 = () => this.editor.toggleHeading(2);
+    window.cmdH3 = () => this.editor.toggleHeading(3);
+    window.cmdListUl = () => this.editor.toggleList('ul');
+    window.cmdListOl = () => this.editor.toggleList('ol');
+    window.cmdQuote = () => this.editor.toggleQuote();
     window.cmdMath = () => {
-      const tex = prompt("数式を入力してください (LaTeX):", "E = mc^2");
+      const tex = prompt("数式を入力してください (LaTeX):", "x = 1");
       if (tex && window.katex) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'math-block-wrapper';
-        wrapper.setAttribute('contenteditable', 'false');
-        wrapper.setAttribute('data-tex', tex);
-        const display = document.createElement('div');
-        display.className = 'katex-display';
-        window.katex.render(tex, display, { displayMode: true });
-        wrapper.appendChild(display);
-        
         const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0) {
-          sel.getRangeAt(0).insertNode(wrapper);
+        if (sel && !sel.isCollapsed) {
+          // Wrap selected text or insert inline
+          const inlineEl = this.editor.createInlineMathElement(tex);
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(inlineEl);
         } else {
-          this.editor.el.appendChild(wrapper);
+          // Insert block or inline
+          const wrapper = document.createElement('div');
+          wrapper.className = 'math-block-wrapper';
+          wrapper.setAttribute('contenteditable', 'false');
+          wrapper.setAttribute('data-tex', tex);
+          const display = document.createElement('div');
+          display.className = 'katex-display';
+          window.katex.render(tex, display, { displayMode: true });
+          wrapper.appendChild(display);
+
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.insertNode(wrapper);
+          } else {
+            this.editor.el.appendChild(wrapper);
+          }
         }
+        this.editor.onChange(this.editor.getMarkdown(), this.editor.getHTML());
       }
     };
     window.cmdImage = () => this.imageHandler.pickImage();

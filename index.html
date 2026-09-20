@@ -102,11 +102,12 @@
         </button>
 
         <div class="capsule-expand-tray">
-          <button class="capsule-btn" title="太字" onclick="cmdBold()"><b>B</b></button>
-          <button class="capsule-btn" title="斜体" onclick="cmdItalic()"><i>I</i></button>
-          <button class="capsule-btn" title="見出し2" onclick="cmdH2()">H2</button>
-          <button class="capsule-btn" title="数式" onclick="cmdMath()">∑</button>
-          <button class="capsule-btn" title="画像" onclick="cmdImage()">🖼</button>
+          <button class="capsule-btn" title="太字 (Ctrl/Cmd+B)" onclick="cmdBold()"><b>B</b></button>
+          <button class="capsule-btn" title="斜体 (Ctrl/Cmd+I)" onclick="cmdItalic()"><i>I</i></button>
+          <button class="capsule-btn" title="見出し2 (H2)" onclick="cmdH2()">H2</button>
+          <button class="capsule-btn" title="箇条書きリスト" onclick="cmdListUl()">•≡</button>
+          <button class="capsule-btn" title="数式 (LaTeX)" onclick="cmdMath()">∑</button>
+          <button class="capsule-btn" title="画像挿入" onclick="cmdImage()">🖼</button>
           <button class="capsule-btn" title="Gist同期" onclick="triggerSync()">☁️</button>
           <button class="capsule-btn" title="このメモを削除" onclick="deleteCurrentNote()">🗑</button>
         </div>
@@ -135,13 +136,13 @@
           <div class="dock-icon-box">H2</div>
           <span>見出し</span>
         </button>
+        <button class="dock-item" onclick="cmdListUl(); toggleSheet();">
+          <div class="dock-icon-box">•≡</div>
+          <span>箇条書き</span>
+        </button>
         <button class="dock-item" onclick="cmdMath(); toggleSheet();">
           <div class="dock-icon-box">∑</div>
           <span>数式</span>
-        </button>
-        <button class="dock-item" onclick="cmdImage(); toggleSheet();">
-          <div class="dock-icon-box">🖼</div>
-          <span>画像</span>
         </button>
 
         <button class="dock-item" onclick="openDrawer(); toggleSheet();">
