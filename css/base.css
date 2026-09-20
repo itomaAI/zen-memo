@@ -26,8 +26,8 @@
 html, body {
   width: 100%;
   height: 100%;
-  position: fixed;
-  inset: 0;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -36,16 +36,14 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Document Container - Bound to viewport, only inner editor scrolls */
+/* Document Container - Always fills available viewport space */
 #app-container {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  position: relative;
   overflow: hidden;
 }
 
@@ -121,6 +119,54 @@ html, body {
 
 #editor-viewport li {
   margin-bottom: 0.35em;
+}
+
+/* Task List / Checklist */
+#editor-viewport ul.task-list {
+  list-style: none;
+  margin-left: 0.2em;
+  padding-left: 0;
+}
+
+#editor-viewport li.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 0.4em;
+}
+
+#editor-viewport li.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 5px;
+  margin-top: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: grid;
+  place-content: center;
+  transition: all 0.15s ease;
+}
+
+#editor-viewport li.task-list-item input[type="checkbox"]:checked {
+  background-color: var(--text-color);
+  border-color: var(--text-color);
+}
+
+#editor-viewport li.task-list-item input[type="checkbox"]:checked::before {
+  content: "";
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid var(--bg-color);
+  border-bottom: 2px solid var(--bg-color);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+#editor-viewport li.task-list-item.checked {
+  color: var(--text-muted);
+  text-decoration: line-through;
 }
 
 #editor-viewport blockquote {

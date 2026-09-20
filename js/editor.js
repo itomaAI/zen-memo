@@ -565,7 +565,16 @@ export class ZenEditor {
         const text = node.innerHTML.trim();
         if (text && text !== '<br>') md += `${this.convertInlineToMarkdown(node)}\n\n`;
       } else if (tag === 'ul') {
-        for (const li of node.querySelectorAll('li')) md += `- ${this.convertInlineToMarkdown(li)}\n`;
+        if (node.classList.contains('task-list')) {
+          for (const li of node.querySelectorAll('li.task-list-item')) {
+            const cb = li.querySelector('input[type="checkbox"]');
+            const mark = cb && cb.checked ? '[x]' : '[ ]';
+            const span = li.querySelector('span') || li;
+            md += `- ${mark} ${this.convertInlineToMarkdown(span)}\n`;
+          }
+        } else {
+          for (const li of node.querySelectorAll('li')) md += `- ${this.convertInlineToMarkdown(li)}\n`;
+        }
         md += '\n';
       } else if (tag === 'ol') {
         let i = 1;

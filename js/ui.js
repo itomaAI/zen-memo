@@ -40,8 +40,12 @@ export class UIManager {
       const vv = window.visualViewport;
 
       if (appContainer) {
-        appContainer.style.height = `${vv.height}px`;
-        appContainer.style.top = `${vv.offsetTop}px`;
+        if (Math.abs(window.innerHeight - vv.height) > 10) {
+          appContainer.style.height = `${vv.height}px`;
+        } else {
+          appContainer.style.height = '100%';
+        }
+        appContainer.style.top = '0px';
       }
     };
 

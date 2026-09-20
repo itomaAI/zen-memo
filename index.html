@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="paper">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Zen Memo</title>
@@ -106,6 +106,7 @@
           <button class="capsule-btn" title="斜体 (Ctrl/Cmd+I)" onclick="cmdItalic()"><i>I</i></button>
           <button class="capsule-btn" title="見出し2 (H2)" onclick="cmdH2()">H2</button>
           <button class="capsule-btn" title="箇条書きリスト" onclick="cmdListUl()">•≡</button>
+          <button class="capsule-btn" title="チェックリスト" onclick="cmdTask()">☑</button>
           <button class="capsule-btn" title="数式 (LaTeX)" onclick="cmdMath()">∑</button>
           <button class="capsule-btn" title="画像挿入" onclick="cmdImage()">🖼</button>
           <button class="capsule-btn" title="Gist同期" onclick="triggerSync()">☁️</button>
@@ -139,6 +140,10 @@
         <button class="dock-item" onclick="cmdListUl(); toggleSheet();">
           <div class="dock-icon-box">•≡</div>
           <span>箇条書き</span>
+        </button>
+        <button class="dock-item" onclick="cmdTask(); toggleSheet();">
+          <div class="dock-icon-box">☑</div>
+          <span>タスク</span>
         </button>
         <button class="dock-item" onclick="cmdMath(); toggleSheet();">
           <div class="dock-icon-box">∑</div>

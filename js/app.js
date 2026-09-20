@@ -327,7 +327,6 @@ class UIManager {
     const appContainer = document.getElementById('app-container');
 
     const updateLayout = () => {
-      // Prevent any outer window scrolling
       if (window.scrollY !== 0 || window.scrollX !== 0) {
         window.scrollTo(0, 0);
       }
@@ -335,10 +334,15 @@ class UIManager {
       if (!window.visualViewport) return;
       const vv = window.visualViewport;
 
-      // Pin app container precisely to the visible viewport
+      // With interactive-widget=resizes-content, the window resizes natively.
+      // We only apply height adjustment when the browser fails to resize the window (e.g. iOS Safari).
       if (appContainer) {
-        appContainer.style.height = `${vv.height}px`;
-        appContainer.style.top = `${vv.offsetTop}px`;
+        if (Math.abs(window.innerHeight - vv.height) > 10) {
+          appContainer.style.height = `${vv.height}px`;
+        } else {
+          appContainer.style.height = '100%';
+        }
+        appContainer.style.top = '0px';
       }
     };
 
@@ -656,6 +660,11 @@ class ZenEditor {
     if (textBefore === '###') return this.transformBlock(block, 'h3', 3);
     if (textBefore === '####') return this.transformBlock(block, 'h4', 4);
 
+    // Checklists / Tasks
+    if (textBefore === '- [ ]' || textBefore === '[ ]' || textBefore === '[]') {
+      return this.transformToTaskList(block);
+    }
+
     // Lists
     if (textBefore === '-' || textBefore === '*') return this.transformToList(block, 'ul');
     if (textBefore === '1.') return this.transformToList(block, 'ol');
@@ -831,6 +840,27 @@ class ZenEditor {
     return true;
   }
 
+  transformToTaskList(block) {
+    const list = document.createElement('ul');
+    list.className = 'task-list';
+    const li = document.createElement('li');
+    li.className = 'task-list-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    li.appendChild(checkbox);
+
+    const span = document.createElement('span');
+    const remainingText = block.textContent.replace(/^(-?\s*\[\s*\]|\[\s*\])\s*/, '').trim();
+    span.innerHTML = remainingText ? this.escapeHtml(remainingText) : '<br>';
+    li.appendChild(span);
+
+    list.appendChild(li);
+    block.replaceWith(list);
+    this.setCursorToEnd(span);
+    return true;
+  }
+
   transformToMathBlock(block) {
     const tex = prompt("LaTeX数式（ブロック）を入力してください:", "f(x) = \\int_{-\\infty}^\\infty e^{-x^2} dx");
     if (!tex) return false;
@@ -865,6 +895,16 @@ class ZenEditor {
 
   // Click handler to edit both block math and inline math
   handleClick(e) {
+    // Checkbox click in task list
+    if (e.target.matches('input[type="checkbox"]')) {
+      const li = e.target.closest('li.task-list-item');
+      if (li) {
+        li.classList.toggle('checked', e.target.checked);
+        this.onChange(this.getMarkdown(), this.getHTML());
+      }
+      return;
+    }
+
     const mathBlock = e.target.closest('.math-block-wrapper');
     if (mathBlock) {
       const currentTex = mathBlock.getAttribute('data-tex') || '';
@@ -1073,7 +1113,16 @@ class ZenEditor {
         const text = node.innerHTML.trim();
         if (text && text !== '<br>') md += `${this.convertInlineToMarkdown(node)}\n\n`;
       } else if (tag === 'ul') {
-        for (const li of node.querySelectorAll('li')) md += `- ${this.convertInlineToMarkdown(li)}\n`;
+        if (node.classList.contains('task-list')) {
+          for (const li of node.querySelectorAll('li.task-list-item')) {
+            const cb = li.querySelector('input[type="checkbox"]');
+            const mark = cb && cb.checked ? '[x]' : '[ ]';
+            const span = li.querySelector('span') || li;
+            md += `- ${mark} ${this.convertInlineToMarkdown(span)}\n`;
+          }
+        } else {
+          for (const li of node.querySelectorAll('li')) md += `- ${this.convertInlineToMarkdown(li)}\n`;
+        }
         md += '\n';
       } else if (tag === 'ol') {
         let i = 1;
@@ -1189,12 +1238,37 @@ class ZenEditor {
         continue;
       }
 
+      // Tasks / Checklists: - [ ] or - [x]
+      const isTask = line.match(/^-\s*\[([ xX])\]\s*(.*)$/);
+      if (isTask) {
+        if (!currentList || !currentList.classList.contains('task-list')) {
+          currentList = document.createElement('ul');
+          currentList.className = 'task-list';
+          this.el.appendChild(currentList);
+        }
+        const isChecked = isTask[1].toLowerCase() === 'x';
+        const li = document.createElement('li');
+        li.className = 'task-list-item' + (isChecked ? ' checked' : '');
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = isChecked;
+        li.appendChild(cb);
+
+        const span = document.createElement('span');
+        this.renderInlineContent(isTask[2], span);
+        li.appendChild(span);
+
+        currentList.appendChild(li);
+        continue;
+      }
+
       // Lists
       const isUl = line.match(/^[-*]\s+(.*)$/);
       const isOl = line.match(/^(\d+)\.\s+(.*)$/);
 
       if (isUl) {
-        if (!currentList || currentList.tagName !== 'UL') {
+        if (!currentList || currentList.tagName !== 'UL' || currentList.classList.contains('task-list')) {
           currentList = document.createElement('ul');
           this.el.appendChild(currentList);
         }
@@ -1471,6 +1545,10 @@ class ZenApp {
     window.cmdH3 = () => this.editor.toggleHeading(3);
     window.cmdListUl = () => this.editor.toggleList('ul');
     window.cmdListOl = () => this.editor.toggleList('ol');
+    window.cmdTask = () => {
+      const block = this.editor.getClosestBlock(window.getSelection()?.anchorNode) || this.editor.el.lastElementChild;
+      if (block) this.editor.transformToTaskList(block);
+    };
     window.cmdQuote = () => this.editor.toggleQuote();
     window.cmdMath = () => {
       const tex = prompt("数式を入力してください (LaTeX):", "x = 1");
