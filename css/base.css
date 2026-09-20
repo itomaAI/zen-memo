@@ -26,24 +26,30 @@
 html, body {
   width: 100%;
   height: 100%;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: var(--font-serif);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Document Container - Screen is the canvas */
+/* Document Container - Bound to viewport, only inner editor scrolls */
 #app-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-  position: relative;
+  overflow: hidden;
 }
 
-/* Editor Main Viewport */
+/* Editor Main Viewport - Isolated Scroll Container */
 #editor-viewport {
   flex: 1;
   width: 100%;
@@ -56,6 +62,9 @@ html, body {
   letter-spacing: 0.01em;
   word-break: break-word;
   color: var(--text-color);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* Typography & Headings */

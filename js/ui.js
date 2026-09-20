@@ -29,29 +29,33 @@ export class UIManager {
    * Brings toolbars smoothly above virtual keyboard without clipping.
    */
   initViewportObserver() {
-    if (!window.visualViewport) return;
+    const appContainer = document.getElementById('app-container');
 
-    const handleResize = () => {
-      const keyboardHeight = window.innerHeight - window.visualViewport.height;
-      const offset = Math.max(0, keyboardHeight);
-
-      const capsuleEl = document.getElementById('variant-capsule');
-      const cornerEl = document.getElementById('variant-corner');
-      const barEl = document.getElementById('variant-bar');
-
-      if (capsuleEl) {
-        capsuleEl.style.bottom = offset > 0 ? `${offset + 12}px` : 'calc(24px + env(safe-area-inset-bottom))';
+    const updateLayout = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
       }
-      if (cornerEl) {
-        cornerEl.style.bottom = offset > 0 ? `${offset + 12}px` : 'calc(24px + env(safe-area-inset-bottom))';
-      }
-      if (barEl) {
-        barEl.style.bottom = offset > 0 ? `${offset}px` : '0px';
+
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+
+      if (appContainer) {
+        appContainer.style.height = `${vv.height}px`;
+        appContainer.style.top = `${vv.offsetTop}px`;
       }
     };
 
-    window.visualViewport.addEventListener('resize', handleResize);
-    window.visualViewport.addEventListener('scroll', handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateLayout);
+      window.visualViewport.addEventListener('scroll', updateLayout);
+    }
+    window.addEventListener('scroll', () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    });
+
+    updateLayout();
   }
 
   // Drawer Controls

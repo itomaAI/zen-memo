@@ -135,7 +135,7 @@
    1. UI VARIANT A: Dynamic Capsule (中央下フローティングピル)
    ======================================================== */
 .variant-capsule-wrapper {
-  position: fixed;
+  position: absolute;
   bottom: calc(24px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
@@ -214,7 +214,7 @@
    2. UI VARIANT B: Corner Ghost FAB + Bottom Sheet
    ======================================================== */
 .variant-corner-fab {
-  position: fixed;
+  position: absolute;
   bottom: calc(24px + env(safe-area-inset-bottom));
   right: 24px;
   width: 50px;
@@ -237,7 +237,7 @@
 }
 
 .variant-bottom-sheet {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
@@ -306,7 +306,7 @@
    3. UI VARIANT C: Full-width Minimal Keyboard Bar
    ======================================================== */
 .variant-keyboard-bar {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
