@@ -55,10 +55,10 @@
         <div class="form-group">
           <label class="form-label" for="select-ui-variant">UIスタイル</label>
           <select class="form-select" id="select-ui-variant">
-            <option value="auto">自動: 画面幅で切替（広い→案A／狭い→案B）</option>
-            <option value="capsule">案A: カプセル・ピル（中央下部フローティング）</option>
-            <option value="sheet">案B: コーナードック（右下FAB＋ボトムシート）</option>
-            <option value="bar">案C: 全幅ミニマルバー（キーボード連動型）</option>
+            <option value="auto">自動（画面幅で切替：広い→カプセル・ピル／狭い→コーナードック）</option>
+            <option value="capsule">カプセル・ピル（中央下部フローティング）</option>
+            <option value="sheet">コーナードック（右下FAB＋ボトムシート）</option>
+            <option value="bar">全幅ミニマルバー（キーボード連動型）</option>
           </select>
         </div>
 
@@ -88,6 +88,15 @@
         <div class="form-group">
           <label class="form-label" for="textarea-custom-css">カスタム CSS</label>
           <textarea class="form-textarea" id="textarea-custom-css" placeholder="body { font-family: ... }"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">書き出し</label>
+          <div class="btn-row">
+            <button class="btn-secondary" onclick="exportCurrentNote()">このメモを .md で保存</button>
+            <button class="btn-secondary" onclick="exportDatabase()">全メモを書き出す</button>
+          </div>
+          <span class="form-hint">※ 全メモの書き出しは、あとで読み戻せる JSON 形式（本文＋日時）。GitHub PAT は含めません。</span>
         </div>
 
         <button class="btn-primary" onclick="saveSettings()">設定を保存</button>
@@ -205,6 +214,12 @@
           <div class="dock-icon-box">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </div><span>設定</span>
+        </button>
+
+        <button class="dock-item" onclick="closeSheet(); exportCurrentNote();">
+          <div class="dock-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+          </div><span>書き出し</span>
         </button>
 
         <button class="dock-item dock-item-danger" onclick="closeSheet(); deleteCurrentNote();">

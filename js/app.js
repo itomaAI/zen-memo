@@ -461,7 +461,7 @@ class UIManager {
     this.initVariantAutoSwitch();
   }
 
-  /* 'auto' のとき、この幅以上なら案A（カプセル）、未満なら案B（シート） */
+  /* 'auto' のとき、この幅以上ならカプセル・ピル、未満ならコーナードック */
   static get AUTO_BREAKPOINT() { return 720; }
 
   resolveVariant(pref) {
@@ -538,11 +538,15 @@ class UIManager {
     document.getElementById('drawer-overlay')?.classList.add('open');
     document.getElementById('drawer')?.classList.add('open');
     this.app.renderNotesList();
+    this.app.declareRoute('?view=list');
   }
 
   closeDrawer() {
+    const wasOpen = this.isDrawerOpen();
     document.getElementById('drawer-overlay')?.classList.remove('open');
     document.getElementById('drawer')?.classList.remove('open');
+    // 一覧から本文に戻った、も 1 つの場所として積む（戻るで一覧に帰れるように）
+    if (wasOpen && this.app.currentNote) this.app.declareRoute(`?note=${this.app.currentNote.id}`);
   }
 
   isDrawerOpen() {
@@ -1135,6 +1139,7 @@ class ZenApp {
     }
 
     this.imageHandler = new ImageHandler(this.editor);
+    this.initNavRouter();       // ブラウザの戻る／進むに乗せる
     await this.loadInitialNote();
     this.backfillMirror();      // 写しが無いメモを後から埋める（待たない）
 
@@ -1142,6 +1147,65 @@ class ZenApp {
     document.body.classList.add('zen-ready');
     document.getElementById('boot-overlay')?.remove();
     this.editor.focus();
+  }
+
+  /* ---------- OS ナビゲーション（ブラウザの「戻る」＝一覧） ----------
+     ホストは前面アプリ＋アプリが declare した経路をタブの履歴として持っている。
+     「一覧を開いた」「このメモを開いた」を declare しておくと、
+     ブラウザの戻る／進むがそのまま画面の行き来になる。
+     単体ホスト（MetaOS 無し）では、この節はまるごと無効になるだけ。       */
+
+  hasNav() {
+    return !!(window.MetaOS?.nav && typeof window.MetaOS.nav.declare === 'function');
+  }
+
+  /** 今いる場所をホストに申告する。履歴が 1 つ増える */
+  declareRoute(route) {
+    if (!this.hasNav()) return;
+    if (this._navApplying) return;      // 戻る／進むを反映している最中は積まない（無限ループ防止）
+    if (this._lastRoute === route) return;  // 同じ場所を二重に積まない
+    this._lastRoute = route;
+    try { window.MetaOS.nav.declare(route); } catch (e) { console.warn('[Zen Memo] nav.declare 失敗', e); }
+  }
+
+  initNavRouter() {
+    if (!this.hasNav()) return;
+    this._navApplying = false;
+    this._lastRoute = null;
+    try {
+      window.MetaOS.system.on('nav_changed', (state) => {
+        this.applyRoute(state?.current?.uri || '');
+      });
+    } catch (e) { console.warn('[Zen Memo] nav_changed を購読できませんでした', e); }
+  }
+
+  /** 履歴側から呼ばれる。ここでの画面変更は declare し返さない */
+  async applyRoute(uri) {
+    if (!this.ready && !this.editor?.tiptap) return;
+
+    const params = new URLSearchParams(String(uri).split('?')[1] || '');
+    const view = params.get('view');
+    const noteId = params.get('note');
+
+    this._navApplying = true;
+    try {
+      if (view === 'list') {
+        this._lastRoute = '?view=list';
+        this.ui.openDrawer();
+        return;
+      }
+      if (noteId) {
+        this._lastRoute = `?note=${noteId}`;
+        this.ui.closeDrawer();
+        if (this.currentNote?.id !== noteId && await this.db.getNote(noteId)) {
+          await this.openNote(noteId);
+        }
+      }
+    } catch (e) {
+      console.warn('[Zen Memo] 経路の反映に失敗', e);
+    } finally {
+      this._navApplying = false;
+    }
   }
 
   showBootError(message, error) {
@@ -1190,6 +1254,7 @@ class ZenApp {
     this.editor.setContent(note.content || '');
     this.handleTitleUpdate(note.title || DEFAULT_TITLE);
     if (closeDrawer) this.ui.closeDrawer();
+    this.declareRoute(`?note=${note.id}`);
   }
 
   async createNewNote({ closeDrawer = true } = {}) {
@@ -1209,6 +1274,7 @@ class ZenApp {
     this.editor.setContent('');
     this.handleTitleUpdate(DEFAULT_TITLE);
     if (closeDrawer) this.ui.closeDrawer();
+    this.declareRoute(`?note=${newNote.id}`);
     this.editor.focus();
   }
 
@@ -1347,6 +1413,107 @@ class ZenApp {
       if (await window.MetaOS.fs.exists(path)) await window.MetaOS.fs.delete(path);
     } catch (e) {
       console.warn('[Zen Memo] VFS unmirror failed:', e);
+    }
+  }
+
+  /* ---------- 書き出し ----------
+     Itera OS 上では保存ダイアログで VFS に置く。単体ブラウザでは普通のダウンロードに落とす。 */
+
+  safeFileName(name, fallback = 'memo') {
+    const cleaned = String(name || '')
+      .replace(/[\\/:*?"<>|]/g, '')       // ファイル名に使えない文字
+      .replace(/[\u0000-\u001f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60);
+    return cleaned || fallback;
+  }
+
+  fileStamp(d = new Date()) {
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  }
+
+  /** 1 ファイルを保存する。戻り値は保存先（取り消したら null） */
+  async saveAsFile(filename, text, { mime = 'text/markdown', filters = ['.md'] } = {}) {
+    if (this.hasMetaOS() && window.MetaOS.host?.showSaveDialog) {
+      try {
+        const path = await window.MetaOS.host.showSaveDialog({
+          title: '書き出し先を選んでください',
+          defaultName: filename,
+          filters
+        });
+        if (!path) return null;              // 取り消しは失敗ではない
+        await window.MetaOS.fs.write(path, text, { overwrite: true });
+        return path;
+      } catch (e) {
+        console.warn('[Zen Memo] VFS への保存に失敗。ダウンロードに切り替えます', e);
+      }
+    }
+
+    const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return filename;
+  }
+
+  /** 開いているメモを Markdown ファイルとして書き出す */
+  async exportCurrentNote() {
+    if (!this.ready || !this.currentNote) { this.ui?.toast('書き出せるメモがありません'); return; }
+    await this.flushSave();                 // 画面の最新を確実に本文へ
+
+    const body = this.editor?.getMarkdown?.() || this.currentNote.content || '';
+    if (!body.trim()) { this.ui?.toast('中身が空です'); return; }
+
+    const base = this.safeFileName(this.currentNote.title, 'memo');
+    const saved = await this.saveAsFile(`${base}.md`, body);
+    if (saved) this.ui?.toast(`${base}.md を書き出しました`);
+  }
+
+  /** データベース全体（全メモ＋見た目の設定）を 1 つの JSON に書き出す */
+  async exportDatabase() {
+    if (!this.ready) { this.ui?.toast('まだ準備中です'); return; }
+    await this.flushSave();
+
+    try {
+      const notes = await this.db.getAllNotes();
+      const [activeTheme, uiVariant, customCss, gistId] = await Promise.all([
+        this.db.getSetting('active_theme', 'paper'),
+        this.db.getSetting('ui_variant', 'auto'),
+        this.db.getSetting('custom_css', ''),
+        this.db.getSetting('gist_id', '')
+      ]);
+
+      const payload = {
+        format: 'zen-memo-backup',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        count: notes.length,
+        // GitHub PAT は意図的に含めない（バックアップを渡した相手に鍵まで渡さないため）
+        settings: { active_theme: activeTheme, ui_variant: uiVariant, custom_css: customCss, gist_id: gistId },
+        notes: notes.map((n) => ({
+          id: n.id,
+          title: n.title,
+          content: n.content,
+          createdAt: n.createdAt,
+          updatedAt: n.updatedAt
+        }))
+      };
+
+      const saved = await this.saveAsFile(
+        `zen-memo-backup-${this.fileStamp()}.json`,
+        JSON.stringify(payload, null, 2),
+        { mime: 'application/json', filters: ['.json'] }
+      );
+      if (saved) this.ui?.toast(`${notes.length} 件を書き出しました`);
+    } catch (e) {
+      console.error('[Zen Memo] エクスポートに失敗', e);
+      this.ui?.toast('書き出しに失敗しました');
     }
   }
 
@@ -1512,6 +1679,8 @@ class ZenApp {
     window.openSettings = () => this.openSettings();
     window.closeSettings = () => this.ui?.closeSettings();
     window.saveSettings = () => this.saveSettings();
+    window.exportCurrentNote = () => this.exportCurrentNote();
+    window.exportDatabase = () => this.exportDatabase();
 
     window.cmdBold = withEditor(() => this.editor.format('bold'));
     window.cmdItalic = withEditor(() => this.editor.format('italic'));

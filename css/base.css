@@ -122,7 +122,7 @@ body:not(.zen-ready) .variant-keyboard-bar {
 }
 
 .ProseMirror p {
-  margin-bottom: 1.25em;
+  margin-bottom: 1.05em;
 }
 
 .ProseMirror p:last-child {
@@ -135,7 +135,7 @@ body:not(.zen-ready) .variant-keyboard-bar {
 }
 
 .ProseMirror ul, .ProseMirror ol {
-  margin: 0.8em 0 1.25em 1.6em;
+  margin: 0.8em 0 1.05em 1.6em;
 }
 
 .ProseMirror li {
@@ -146,7 +146,7 @@ body:not(.zen-ready) .variant-keyboard-bar {
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
   padding: 0;
-  margin: 0.8em 0 1.25em 0;
+  margin: 0.8em 0 1.05em 0;
 }
 
 .ProseMirror ul[data-type="taskList"] > li {
