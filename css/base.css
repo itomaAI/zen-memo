@@ -1,0 +1,173 @@
+/* ========================================================
+   Zen Memo - Base Styles & Typography
+   ======================================================== */
+
+:root {
+  --bg-color: #faf9f6;
+  --text-color: #242424;
+  --text-muted: #8e8d8a;
+  --accent-color: #1a1a1a;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --code-bg: rgba(0, 0, 0, 0.04);
+  --quote-border: #d3cfc7;
+  
+  --font-serif: "Newsreader", "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Meiryo", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-serif);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Document Container - Screen is the canvas */
+#app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* Editor Main Viewport */
+#editor-viewport {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 24px calc(140px + env(safe-area-inset-bottom)) 24px;
+  outline: none;
+  font-size: 17.5px;
+  line-height: 1.85;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+  color: var(--text-color);
+}
+
+/* Typography & Headings */
+#editor-viewport h1.doc-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.28;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+  color: var(--accent-color);
+  border: none;
+  outline: none;
+}
+
+#editor-viewport h2 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.8em 0 0.6em 0;
+  letter-spacing: -0.01em;
+}
+
+#editor-viewport h3 {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.5em 0 0.5em 0;
+}
+
+#editor-viewport p {
+  margin-bottom: 1.25em;
+}
+
+#editor-viewport p:last-child {
+  margin-bottom: 0;
+}
+
+#editor-viewport ul, #editor-viewport ol {
+  margin: 0.8em 0 1.25em 1.6em;
+}
+
+#editor-viewport li {
+  margin-bottom: 0.35em;
+}
+
+#editor-viewport blockquote {
+  border-left: 2.5px solid var(--quote-border);
+  padding: 4px 0 4px 16px;
+  margin: 1.4em 0;
+  color: #555;
+  font-style: italic;
+}
+
+#editor-viewport code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+#editor-viewport pre {
+  background: var(--code-bg);
+  padding: 16px;
+  border-radius: 10px;
+  margin: 1.4em 0;
+  overflow-x: auto;
+}
+
+#editor-viewport pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+#editor-viewport hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 2.5em 0;
+}
+
+/* Image Presentation */
+#editor-viewport img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 1.4em 0;
+  display: block;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Math Displays (KaTeX) */
+.katex-display {
+  margin: 1.4em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+.math-block-wrapper {
+  position: relative;
+  border-radius: 8px;
+  padding: 4px 8px;
+  transition: background 0.15s;
+}
+
+.math-block-wrapper:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Placeholder for empty state */
+#editor-viewport:empty:before {
+  content: "";
+}
