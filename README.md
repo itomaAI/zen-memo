@@ -9,16 +9,21 @@
 ```
 zen-memo/
 ├── index.html          画面の骨格
+├── manifest.webmanifest  PWA の名札（名前・色・アイコン・表示形式）
+├── sw.js               Service Worker。単体ホストでだけ動く
+├── icons/              PWA アイコン（円相・生成物）
 ├── css/
 │   ├── base.css        文字組みと本文まわり
 │   ├── themes.css      色のトークン（色はここだけで決める）
 │   └── ui-variants.css 3つのUIスタイル・ドロワー・モーダル・トースト
 └── js/
-    └── app.js          アプリの実体。index.html はこれ 1 本だけを読む
+    ├── app.js          アプリの実体
+    └── pwa.js          SW の登録と theme-color の追随だけ。本体には干渉しない
 ```
 
 **js/app.js が唯一の実体。** 以前あった `db.js` / `editor.js` / `gist.js` / `image.js` / `theme.js` / `ui.js` は
 どこからも読み込まれていない写しだったため削除した（`trash/` にある）。直すときは常に `app.js` を直す。
+（`js/pwa.js` は PWA の外付けで、アプリの機能を持たない。落ちてもアプリは動く。）
 
 `js/app.js` は classic script（`type="module"` ではない）。Tiptap だけは起動時に
 `import('https://esm.sh/...')` で動的に読み込む。
@@ -128,14 +133,58 @@ zen-memo/
 - 読み込みが終わるまで下部のツールバーは薄く表示され、押せない（押しても無反応、を避けるため）。
 - 起動さえ済めば、以後の編集・保存はオフラインでも動く（同期だけは当然ネットワークが要る）。
 
+## PWA（ホーム画面に入れる）
+
+**効くのは単体ホストしたときだけ。** Itera OS の中は blob: なので `js/pwa.js` が登録そのものを見送る。
+OS 内での動作はこれまでと一切変わらない。
+
+- **条件**: https（または localhost）で配ること。GitHub Pages はこれを満たす。
+- **道具立て**: `manifest.webmanifest`（名前・色・アイコン）／`sw.js`（キャッシュ）／`icons/`／`js/pwa.js`（登録）。
+- **パスはすべて相対**（`start_url` / `scope` は `./`）。`user.github.io/<repo>/` のようなサブパスでも動く。
+  `js/pwa.js` は自分自身の `src` からアプリの根を割り出すので、ページの URL 形にも依存しない。
+
+### キャッシュの決まりごと（sw.js）
+
+| 対象 | やり方 | 理由 |
+| :-- | :-- | :-- |
+| 画面（ナビゲーション） | ネットワーク優先・落ちたらキャッシュ | デプロイした新版がすぐ出る |
+| 自前の css / js / icons | stale-while-revalidate | すぐ出して裏で新しくする |
+| CDN（esm.sh / jsdelivr） | キャッシュ優先 | URL に版が入っている。**二度目の起動からオフラインで開ける** |
+| api.github.com / gist の raw | **一切触らない** | 同期データを掴むと古い本文で上書きしうる |
+
+- **デプロイのたびに `sw.js` の `VERSION` を上げる。** 上げ忘れても画面と資産は更新されるが、
+  先読みキャッシュ（precache）が古いまま居座る。
+- 新しい版は**次に開いたときから**反映される。入ったことはトーストで伝える。
+- 様子がおかしいときは、コンソールで `zenClearCaches()` を呼んでから再読込する。
+
+### アイコン
+
+`icons/` の円相（enso）は `agent/work/2026-09/zen_memo_icons.html` で生成した。
+色は paper テーマの `--bg-color` / `--text-color` をそのまま使っている。
+作り直すときはこのファイルを spawn すれば 4 枚（192 / 512 / 512-maskable / apple-touch-180）が上書きされる。
+
+### データの置き場所
+
+**オリジンが違えば IndexedDB も別。** OS 内のコピーと GitHub Pages 版はデータを共有しない。
+**行き来は Gist 同期で行う。** PAT は端末ごとに登録する（共用端末には入れない）。
+
+---
+
 ## デプロイ方法
 
 ビルドツール（Node.js / npm）は不要。フォルダごと静的ホスティングに置くだけで動く。
 GitHub Pages / Cloudflare Pages / Vercel / Netlify / S3 など。
 
+`index.html` / `css/` / `js/` に加えて、**`manifest.webmanifest` / `sw.js` / `icons/` も一緒に上げる**こと。
+`sw.js` はアプリの根（`index.html` と同じ階層）に置く。1 階層でも深いと制御できる範囲が狭まる。
+
 ---
 
 ## 点検と修正の履歴
+
+- **2026-09-21**: PWA 化。`manifest.webmanifest` / `sw.js` / `icons/` / `js/pwa.js` を追加し、
+  `index.html` の `<head>` に名札とアイコンの参照を足した。
+  登録は https かつ `MetaOS` が無いときだけ走るので、**Itera OS 内の挙動は変えていない**（起動確認済み）。
 
 - **2026-09-20**: 全体点検で 26 件の不具合・不自然を検出し、すべて修正した。
   主なもの —— 同期後に開いているメモが古い内容で上書きされる問題、メモ切替時の保存の取りこぼしと
