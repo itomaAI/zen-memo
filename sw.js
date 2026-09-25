@@ -9,14 +9,17 @@
      こうしないと、デプロイしても古い画面が出続ける。
    - 自前の資産（css / js / icons）: stale-while-revalidate。
      即座に出して、裏で新しくする。
-   - CDN（esm.sh / jsdelivr）: URL に版が入っているのでキャッシュ優先。
-     これがあるおかげで二度目からはオフラインでも起動できる。
+   - 写し（vendor/）: URL に版が入っているのでキャッシュ優先。
+     導入時に vendor/manifest.json を見て丸ごと先読みするので、
+     一度入れれば最初からオフラインで起動できる。
+   - CDN: 写しが欠けた時だけ app.js が頼る。来たらキャッシュ優先で扱う。
    - GitHub API と gist の raw: 一切触らない。同期データをキャッシュすると古い本文を掴む。
    ======================================================== */
 
-const VERSION = '2026-09-21.1';          /* デプロイのたびに上げる */
+const VERSION = '2026-09-25.1';          /* デプロイのたびに上げる */
 const SHELL   = 'zen-memo-shell-' + VERSION;
 const RUNTIME = 'zen-memo-runtime';      /* CDN 用。版に紐付けない（毎回落とし直さないため） */
+const VENDOR  = 'zen-memo-vendor';       /* 写し用。版に紐付けない */
 
 const SHELL_ASSETS = [
   './',
@@ -27,6 +30,7 @@ const SHELL_ASSETS = [
   './css/ui-variants.css',
   './js/app.js',
   './js/pwa.js',
+  './js/vendor.js',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -48,6 +52,25 @@ self.addEventListener('install', (event) => {
         if (res && res.ok) await cache.put(url, res.clone());
       } catch (e) { /* 欠けは許す */ }
     }));
+
+    /* 写しを丸ごと先読みする。目録は vendor/manifest.json（作り方は README）。 */
+    try {
+      const res = await fetch('./vendor/manifest.json', { cache: 'reload' });
+      if (res && res.ok) {
+        const manifest = await res.json();
+        const vendorCache = await caches.open(VENDOR);
+        const files = (manifest && manifest.files) || [];
+        await Promise.all(files.map(async (url) => {
+          try {
+            /* 既にあるものは落とし直さない（版が経路に入っているので中身は変わらない） */
+            if (await vendorCache.match(url)) return;
+            const r = await fetch(new Request(url, { cache: 'reload' }));
+            if (r && r.ok) await vendorCache.put(url, r.clone());
+          } catch (e) { /* 欠けは許す */ }
+        }));
+      }
+    } catch (e) { /* 目録が無ければ CDN に頼る。導入は止めない。 */ }
+
     await self.skipWaiting();
   })());
 });
@@ -91,6 +114,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin === self.location.origin) {
+    /* 写しは経路に版が入っている。問い合わせずキャッシュから出す。 */
+    if (url.pathname.indexOf('/vendor/') !== -1) {
+      event.respondWith(cacheFirst(req, VENDOR));
+      return;
+    }
     event.respondWith(staleWhileRevalidate(req, SHELL));
     return;
   }

@@ -1,0 +1,8 @@
+{
+  "https://esm.sh/@tiptap/core@2.2.4": "vendor/esm.sh/@tiptap/core@2.2.4.mjs",
+  "https://esm.sh/@tiptap/starter-kit@2.2.4": "vendor/esm.sh/@tiptap/starter-kit@2.2.4.mjs",
+  "https://esm.sh/@tiptap/extension-task-list@2.2.4": "vendor/esm.sh/@tiptap/extension-task-list@2.2.4.mjs",
+  "https://esm.sh/@tiptap/extension-task-item@2.2.4": "vendor/esm.sh/@tiptap/extension-task-item@2.2.4.mjs",
+  "https://esm.sh/@tiptap/extension-image@2.2.4": "vendor/esm.sh/@tiptap/extension-image@2.2.4.mjs",
+  "https://esm.sh/tiptap-markdown@0.8.10": "vendor/esm.sh/tiptap-markdown@0.8.10.mjs"
+}

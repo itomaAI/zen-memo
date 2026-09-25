@@ -1,0 +1,22 @@
+/* esm.sh - @tiptap/starter-kit@2.2.4 */
+import "./core@_2.2.4___target_es2022.mjs";
+import "./extension-blockquote@_2.2.4___target_es2022.mjs";
+import "./extension-bold@_2.2.4___target_es2022.mjs";
+import "./extension-bullet-list@_2.2.4___target_es2022.mjs";
+import "./extension-code-block@_2.2.4___target_es2022.mjs";
+import "./extension-code@_2.2.4___target_es2022.mjs";
+import "./extension-document@_2.2.4___target_es2022.mjs";
+import "./extension-dropcursor@_2.2.4___target_es2022.mjs";
+import "./extension-gapcursor@_2.2.4___target_es2022.mjs";
+import "./extension-hard-break@_2.2.4___target_es2022.mjs";
+import "./extension-heading@_2.2.4___target_es2022.mjs";
+import "./extension-history@_2.2.4___target_es2022.mjs";
+import "./extension-horizontal-rule@_2.2.4___target_es2022.mjs";
+import "./extension-italic@_2.2.4___target_es2022.mjs";
+import "./extension-list-item@_2.2.4___target_es2022.mjs";
+import "./extension-ordered-list@_2.2.4___target_es2022.mjs";
+import "./extension-paragraph@_2.2.4___target_es2022.mjs";
+import "./extension-strike@_2.2.4___target_es2022.mjs";
+import "./extension-text@_2.2.4___target_es2022.mjs";
+export * from "./starter-kit@2.2.4/es2022/starter-kit.mjs";
+export { default } from "./starter-kit@2.2.4/es2022/starter-kit.mjs";

@@ -15,9 +15,9 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
 
-  <!-- KaTeX for math rendering -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <!-- KaTeX（写し。vendor/katex/ に置いてある。外へは出ない） -->
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <script defer src="vendor/katex/katex.min.js"></script>
 
   <!-- App Styles -->
   <link rel="stylesheet" href="css/base.css">
@@ -288,6 +288,9 @@
 
   <!-- PWA（Service Worker 登録・表示色の追随）。アプリ本体には干渉しない -->
   <script src="js/pwa.js"></script>
+
+  <!-- 写した ES モジュール（vendor/）の読み手。app.js より先に置く -->
+  <script src="js/vendor.js"></script>
 
   <!-- Main Application Script (このファイルだけがアプリの実体) -->
   <script src="js/app.js"></script>

@@ -1,0 +1,2 @@
+/* esm.sh - @tiptap/extension-paragraph@2.27.3 */
+import{Node as t,mergeAttributes as e}from"../../core@_2.7.0___target_es2022.mjs";var o=t.create({name:"paragraph",priority:1e3,addOptions(){return{HTMLAttributes:{}}},group:"block",content:"inline*",parseHTML(){return[{tag:"p"}]},renderHTML({HTMLAttributes:r}){return["p",e(this.options.HTMLAttributes,r),0]},addCommands(){return{setParagraph:()=>({commands:r})=>r.setNode(this.name)}},addKeyboardShortcuts(){return{"Mod-Alt-0":()=>this.editor.commands.setParagraph()}}});export{o as Paragraph,o as default};

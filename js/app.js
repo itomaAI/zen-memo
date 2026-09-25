@@ -720,12 +720,13 @@ class ZenEditor {
       { default: ImageExt },
       { Markdown }
     ] = await Promise.all([
-      import('https://esm.sh/@tiptap/core@2.2.4'),
-      import('https://esm.sh/@tiptap/starter-kit@2.2.4'),
-      import('https://esm.sh/@tiptap/extension-task-list@2.2.4'),
-      import('https://esm.sh/@tiptap/extension-task-item@2.2.4'),
-      import('https://esm.sh/@tiptap/extension-image@2.2.4'),
-      import('https://esm.sh/tiptap-markdown@0.8.10')
+      /* 写し（vendor/）から読む。無い時だけ CDN に落ちる。js/vendor.js を参照。 */
+      ZenVendor.load('vendor/esm.sh/@tiptap/core@2.2.4.mjs',               'https://esm.sh/@tiptap/core@2.2.4'),
+      ZenVendor.load('vendor/esm.sh/@tiptap/starter-kit@2.2.4.mjs',        'https://esm.sh/@tiptap/starter-kit@2.2.4'),
+      ZenVendor.load('vendor/esm.sh/@tiptap/extension-task-list@2.2.4.mjs','https://esm.sh/@tiptap/extension-task-list@2.2.4'),
+      ZenVendor.load('vendor/esm.sh/@tiptap/extension-task-item@2.2.4.mjs','https://esm.sh/@tiptap/extension-task-item@2.2.4'),
+      ZenVendor.load('vendor/esm.sh/@tiptap/extension-image@2.2.4.mjs',    'https://esm.sh/@tiptap/extension-image@2.2.4'),
+      ZenVendor.load('vendor/esm.sh/tiptap-markdown@0.8.10.mjs',           'https://esm.sh/tiptap-markdown@0.8.10')
     ]);
 
     const renderTex = (target, tex, displayMode) => {
@@ -1149,34 +1150,65 @@ class ZenApp {
     this.editor.focus();
   }
 
-  /* ---------- OS ナビゲーション（ブラウザの「戻る」＝一覧） ----------
-     ホストは前面アプリ＋アプリが declare した経路をタブの履歴として持っている。
-     「一覧を開いた」「このメモを開いた」を declare しておくと、
-     ブラウザの戻る／進むがそのまま画面の行き来になる。
-     単体ホスト（MetaOS 無し）では、この節はまるごと無効になるだけ。       */
+  /* ---------- ナビゲーション（ブラウザの「戻る」＝一覧） ----------
+     「一覧を開いた」「このメモを開いた」を 1 つずつ履歴に積むと、
+     ブラウザの戻る／進むがそのまま画面の行き来になる。積み先は 2 通り。
+     - Itera OS の中: ホストの履歴（MetaOS.nav.declare / nav_changed）に委ねる。
+     - 単体ホスト（PWA）: History API（pushState / popstate）に自分で積む。
+       URL は変えず state だけを積む（sw.js の照合と、オフラインでの再読込を揺らさないため）。
+       最初のメモの下に「一覧」を 1 枚敷くので、開いた直後に戻ると一覧、もう一度戻るとサイトの外。 */
 
   hasNav() {
     return !!(window.MetaOS?.nav && typeof window.MetaOS.nav.declare === 'function');
   }
 
-  /** 今いる場所をホストに申告する。履歴が 1 つ増える */
+  /** 今いる場所を履歴に積む。履歴が 1 つ増える */
   declareRoute(route) {
-    if (!this.hasNav()) return;
     if (this._navApplying) return;      // 戻る／進むを反映している最中は積まない（無限ループ防止）
     if (this._lastRoute === route) return;  // 同じ場所を二重に積まない
     this._lastRoute = route;
-    try { window.MetaOS.nav.declare(route); } catch (e) { console.warn('[Zen Memo] nav.declare 失敗', e); }
+
+    if (this.hasNav()) {
+      try { window.MetaOS.nav.declare(route); } catch (e) { console.warn('[Zen Memo] nav.declare 失敗', e); }
+      return;
+    }
+
+    try {
+      if (!this._historySeeded) {
+        this._historySeeded = true;
+        const LIST = '?view=list';
+        // 再読込のときは既に自分の履歴の上にいる。敷き直すと再読込のたびに履歴が伸びるので置き換えだけ
+        const reloaded = typeof history.state?.zen === 'string';
+        if (reloaded || route === LIST) {
+          history.replaceState({ zen: route }, '');
+        } else {
+          history.replaceState({ zen: LIST }, '');
+          history.pushState({ zen: route }, '');
+        }
+        return;
+      }
+      history.pushState({ zen: route }, '');
+    } catch (e) { console.warn('[Zen Memo] history への記録に失敗', e); }
   }
 
   initNavRouter() {
-    if (!this.hasNav()) return;
     this._navApplying = false;
     this._lastRoute = null;
-    try {
-      window.MetaOS.system.on('nav_changed', (state) => {
-        this.applyRoute(state?.current?.uri || '');
-      });
-    } catch (e) { console.warn('[Zen Memo] nav_changed を購読できませんでした', e); }
+    this._historySeeded = false;
+
+    if (this.hasNav()) {
+      try {
+        window.MetaOS.system.on('nav_changed', (state) => {
+          this.applyRoute(state?.current?.uri || '');
+        });
+      } catch (e) { console.warn('[Zen Memo] nav_changed を購読できませんでした', e); }
+      return;
+    }
+
+    window.addEventListener('popstate', (e) => {
+      const route = e.state?.zen;
+      if (typeof route === 'string') this.applyRoute(route);
+    });
   }
 
   /** 履歴側から呼ばれる。ここでの画面変更は declare し返さない */

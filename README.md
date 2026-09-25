@@ -16,17 +16,27 @@ zen-memo/
 │   ├── base.css        文字組みと本文まわり
 │   ├── themes.css      色のトークン（色はここだけで決める）
 │   └── ui-variants.css 3つのUIスタイル・ドロワー・モーダル・トースト
-└── js/
-    ├── app.js          アプリの実体
-    └── pwa.js          SW の登録と theme-color の追随だけ。本体には干渉しない
+├── js/
+│   ├── app.js          アプリの実体
+│   ├── vendor.js       vendor/ を読む係（app.js より先に読む）
+│   └── pwa.js          SW の登録と theme-color の追随だけ。本体には干渉しない
+├── vendor/             外部ライブラリの写し。ここを読むので外へ出ない
+│   ├── esm.sh/         Tiptap と ProseMirror 一式（143 個）
+│   ├── katex/          KaTeX 本体・CSS・woff2 フォント
+│   ├── entrypoints.json  入口 URL と写しの対応
+│   └── manifest.json   写しの目録（Service Worker の先読みに使う）
+└── tools/              写しを作り直す道具（Itera OS の中でだけ動く）
+    ├── mirror.html     CDN から vendor/ へ写す
+    └── manifest.html   vendor/manifest.json を作り直す
 ```
 
 **js/app.js が唯一の実体。** 以前あった `db.js` / `editor.js` / `gist.js` / `image.js` / `theme.js` / `ui.js` は
 どこからも読み込まれていない写しだったため削除した（`trash/` にある）。直すときは常に `app.js` を直す。
 （`js/pwa.js` は PWA の外付けで、アプリの機能を持たない。落ちてもアプリは動く。）
 
-`js/app.js` は classic script（`type="module"` ではない）。Tiptap だけは起動時に
-`import('https://esm.sh/...')` で動的に読み込む。
+`js/app.js` は classic script（`type="module"` ではない）。Tiptap だけは起動時に動的
+`import()` で読み込むが、読む先は **CDN ではなく `vendor/` の写し**（`ZenVendor.load()`）。
+写しが欠けているときだけ CDN に落ちる。詳しくは「外部ライブラリの写し」を参照。
 
 ---
 
@@ -128,10 +138,59 @@ zen-memo/
 
 ## 動作に必要なもの
 
-- **起動時にネットワークが要る。** エディタ本体（Tiptap）と KaTeX を CDN から読む。
-  読めなかったときは白画面のままにせず、**理由と「再試行」を表示する**。
+- **起動にネットワークは要らない。** エディタ本体（Tiptap）も KaTeX も `vendor/` の写しから読む。
+  Itera OS の中では、起動時の外部への取得は 0 件（`performance` の resource で確認済み）。
+- 写しが欠けている・読めないときだけ CDN に落ちる。それも駄目なら白画面のままにせず、
+  **理由と「再試行」を表示する**。
 - 読み込みが終わるまで下部のツールバーは薄く表示され、押せない（押しても無反応、を避けるため）。
-- 起動さえ済めば、以後の編集・保存はオフラインでも動く（同期だけは当然ネットワークが要る）。
+- 同期（Gist）だけは当然ネットワークが要る。
+
+## 外部ライブラリの写し（vendor/）
+
+Tiptap・ProseMirror・KaTeX は CDN から読まず、`vendor/` に写して同梱している。
+外へ出ないので、起動が CDN の生死に左右されない。合計 1.1 MB / 166 ファイル。
+
+### なぜ束ねず、graph のまま写すのか
+
+パッケージごとに `?bundle` で固めると、ProseMirror の写しが複数できる。
+すると `instanceof` が成り立たなくなり、選択やコマンドが**静かに**壊れる。
+esm.sh は依存を版つきの共有 URL で指すので、graph をそのまま写せば
+`prosemirror-model` の実体は 1 つに保たれる（確認済み：実体 1 件）。
+
+### 読み方（js/vendor.js）
+
+Itera OS の中でアプリは `blob:` URL の上で動く。`blob:` URL には「居場所」が無いため、
+`MetaOS.fs.resolveUrl()` が返す URL をそのまま `import()` しても、モジュール自身が持つ
+`'./...'` の依存が解けない（検証で確認）。そこで graph を自前で解く。
+
+1. VFS から本文を読む
+2. 相対指定を再帰的にたどり、依存を先に `blob:` URL にする
+3. 本文の相対指定をその URL に書き換えてから `import()`
+
+経路ごとに記憶するので、写し 1 つにつき実体は 1 つ。
+
+### 落とし穴（二度踏まないこと）
+
+- **名前の衝突**：`@tiptap/core@2.2.4` は*ファイル*（入口）でも*ディレクトリ*
+  （`.../es2022/core.mjs` の親）でもある。「名前にドットがあればファイル」で判じると
+  版番号の `2.2.4` に騙されて衝突する。**実際の拡張子で判じ、無ければ `.mjs` を足す。**
+- **循環の見張りを共有しない**：入口 6 つは `Promise.all` で同時に読まれる。
+  祖先をたどる配列を全体で 1 つにすると、他の枝の途中経過を循環と見誤って
+  指定を書き換え損ね、`blob:` の上では即座に解決不能になる（"Error resolving module
+  specifier ..."）。**枝ごとに配列を渡す。**
+  ※ 逐次で試すと再現しない。直列に通っただけで安心しないこと。
+
+### 作り直す
+
+Itera OS の中で、この順に spawn する（どちらも外向きに取りに行く）。
+
+1. `tools/mirror.html` — CDN から `vendor/` へ写す。入口は先頭の `ENTRIES` に書いてある。
+   版を上げるときはここを書き換える。`vendor/` は消してから流し直すのが安全。
+2. `tools/manifest.html` — `vendor/manifest.json`（Service Worker の先読み目録）を作り直す。
+
+写しを入れ替えたら `js/app.js` の `ZenVendor.load()` の経路と `sw.js` の `VERSION` も合わせる。
+うまく読めているかは、起動後にコンソールで `__zenVendorTrace` を見る。
+全件 `branch: 'vfs'` なら写しから読めている。
 
 ## PWA（ホーム画面に入れる）
 
@@ -149,7 +208,8 @@ OS 内での動作はこれまでと一切変わらない。
 | :-- | :-- | :-- |
 | 画面（ナビゲーション） | ネットワーク優先・落ちたらキャッシュ | デプロイした新版がすぐ出る |
 | 自前の css / js / icons | stale-while-revalidate | すぐ出して裏で新しくする |
-| CDN（esm.sh / jsdelivr） | キャッシュ優先 | URL に版が入っている。**二度目の起動からオフラインで開ける** |
+| 写し（vendor/） | キャッシュ優先・導入時に目録から丸ごと先読み | 経路に版が入っている。**最初の起動からオフラインで開ける** |
+| CDN（esm.sh / jsdelivr） | キャッシュ優先 | 写しが欠けたときの保険 |
 | api.github.com / gist の raw | **一切触らない** | 同期データを掴むと古い本文で上書きしうる |
 
 - **デプロイのたびに `sw.js` の `VERSION` を上げる。** 上げ忘れても画面と資産は更新されるが、
